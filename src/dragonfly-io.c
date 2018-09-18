@@ -40,6 +40,7 @@
 #include "io-zfile.h"
 #include "io-kafka.h"
 #include "io-syslog.h"
+#include "io-ipfix.h"
 
 static char *g_run_dir = NULL;
 static char *g_log_dir = NULL;
@@ -125,6 +126,10 @@ DF_HANDLE *dragonfly_io_open(const char *uri, int spec)
         {
                 return ipc_open(((const char *)uri + 11), spec);
         }
+        else if (strncmp("ipfix://", uri, 8) == 0)
+        {
+                return ipfix_open(((const char *)uri + 11), spec);
+        }
         else if (strncmp("syslog://", uri, 9) == 0)
         {
                 return ipc_open(((const char *)uri + 9), spec);
@@ -199,6 +204,10 @@ int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int len)
         {
                 return kafka_read_message(dh, buffer, len);
         }
+        else if (dh->io_type == DF_IPFIX)
+        {
+                return ipfix_read_line(dh, buffer, len);
+        }
         return -1;
 }
 
@@ -265,6 +274,10 @@ void dragonfly_io_close(DF_HANDLE *dh)
         else if (dh->io_type == DF_IN_KAFKA_TYPE)
         {
                 return kafka_close(dh);
+        }
+        else if (dh->io_type == DF_IPFIX)
+        {
+                return ipfix_close(dh);
         }
         free(dh->path);
         dh->path = NULL;

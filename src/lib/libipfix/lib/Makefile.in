@@ -1,0 +1,71 @@
+#$$LIC$$
+#
+# $Id: Makefile.in 996 2009-03-19 18:14:44Z csc $
+# 
+# Makefile
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+datarootdir = @datarootdir@
+libdir = @libdir@
+mandir = @mandir@
+includedir = @includedir@
+top_builddir = .
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+CC = @CC@
+EXEEXT = @EXEEXT@
+OBJEXT = @OBJEXT@
+PACKAGE = @PACKAGE_NAME@
+VERSION = @PACKAGE_VERSION@
+install_sh = @install_sh@
+OPENSSL = @OPENSSL@
+
+DEFS = @DEFS@ 
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@ -L../libmisc
+LIBS = @LIBS@ @SSLLIBS@ @MYSQLLIBS@ -lmisc
+CCOPT = -Wall -g
+INCLS = -I. -I.. -I../libmisc
+CFLAGS = $(CCOPT) $(INCLS) $(DEFS)
+
+TARGETS = ipfix_reverse_fields.h ipfix_def_fokus.h ipfix_fields_fokus.h libipfix.a libipfix.so
+SOURCES = ipfix.c ipfix_col.c ipfix_col_db.c ipfix_col_files.c ipfix_print.c
+OBJECTS = $(SOURCES:.c=.o) @IPFIX_DB_OBJ@ @IPFIX_SSL_OBJ@
+DHPARAMS = dh512.pem dh1024.pem
+CLEANFILES = $(TARGETS) *.d *.o *.so *.so.$(VERSION)
+DISTCLEANFILES = $(CLEANFILES) $(DHPARAMS) Makefile
+
+INST_HDR = $(wildcard ipfix*.h)
+INST_STC = libipfix.a
+INST_SHD = libipfix.so
+
+include ../Makefile.rules
+
+dh%.pem:
+	$(OPENSSL) dhparam -check -text -5 $* -out $@
+
+dhparams.c: $(DHPARAMS) 
+	echo "#include <openssl/ssl.h>" > $@
+	echo "#include <openssl/x509v3.h>" >> $@
+	$(OPENSSL) dh -noout -C < dh512.pem >> $@ 
+	$(OPENSSL) dh -noout -C < dh1024.pem >> $@ 
+
+ipfix_reverse_fields.h: ipfix_fields.h make-reverse-IPFIX_FIELDS_H.sed-script-file
+	sed -f make-reverse-IPFIX_FIELDS_H.sed-script-file $< > $@
+
+ipfix_%_fokus.h: ipfix_FOKUS_IEs.txt make-ipfix_%_fokus_h.awk
+	awk -f make-ipfix_$*_fokus_h.awk $< > $@
+

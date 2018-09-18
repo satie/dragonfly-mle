@@ -42,6 +42,7 @@
 #define DF_IN_KAFKA_TYPE 8
 #define DF_OUT_KAFKA_TYPE 9
 #define DF_CMD_SURICATA 10
+#define DF_IPFIX  11
 
 #define DF_MAX_BUFFER_LEN 2048
 

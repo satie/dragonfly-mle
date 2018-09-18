@@ -448,6 +448,7 @@ static void *lua_flywheel_thread(void *ptr)
     pthread_setname_np(pthread_self(), flywheel->tag);
 #endif
     syslog(LOG_NOTICE, "Running %s\n", flywheel->tag);
+
     while (g_running)
     {
         if ((flywheel->input = dragonfly_io_open(flywheel->uri, DF_IN)) == NULL)
@@ -456,7 +457,6 @@ static void *lua_flywheel_thread(void *ptr)
         }
         lua_flywheel_loop(flywheel);
         dragonfly_io_close(flywheel->input);
-
 
         // if the source is a flat file, then exit
         if (dragonfly_io_isfile(flywheel->input))
@@ -535,24 +535,6 @@ static void *lua_input_thread(void *ptr)
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
 
-#ifdef COMMENT_OUT
-    /* set local LUA paths */
-    snprintf(lua_path, PATH_MAX - 1, "package.path = package.path .. \";lib/?.lua\"");
-    if (luaL_dostring(L, lua_path))
-    {
-        syslog(LOG_ERR, "luaL_dostring %s failed - %s", lua_script, lua_tostring(L, -1));
-        lua_pop(L, 1);
-        pthread_exit(NULL);
-    }
-
-    snprintf(lua_path, PATH_MAX - 1, "package.cpath = package.cpath .. \";lib/?.so\"");
-    if (luaL_dostring(L, lua_path))
-    {
-        syslog(LOG_ERR, "luaL_dostring %s failed - %s", lua_script, lua_tostring(L, -1));
-        lua_pop(L, 1);
-        pthread_exit(NULL);
-    }
-#endif
     /*
      * Load the built-in dragonfly function table
      */
@@ -1294,9 +1276,12 @@ void startup_threads()
      * Initialize the timer list BEFORE forking
      */
     memset(&g_timer_list, 0, sizeof(g_timer_list));
-    /* add internal logger for logging */
+    /* 
+     * add internal logger for logging 
+     */
     g_timer_list[0].tag = strdup(g_output_list[0].tag);
     g_timer_list[0].queue = g_output_list[0].queue;
+    
     /* all the other analyzers */
     for (int i = 1; i < MAX_ANALYZER_STREAMS; i++)
     {
