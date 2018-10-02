@@ -164,8 +164,12 @@ void SELF_TEST8(const char *dragonfly_root)
 	msg[sizeof(msg) - 1] = '\0';
 	snprintf(buffer, sizeof(buffer), "{ \"id\": %lu, \"msg\":\"%s\" }", (unsigned long) 1, msg);
 	dragonfly_io_write(pump, buffer);
-	shutdown_threads();
+
 	dragonfly_io_close(pump);
+	sleep(1);
+	shutdown_threads();
+	
+
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);

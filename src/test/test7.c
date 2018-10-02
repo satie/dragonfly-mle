@@ -220,8 +220,10 @@ void SELF_TEST7(const char *dragonfly_root)
 		}
 	}
 	pthread_join(tinfo, NULL);
-	shutdown_threads();
 	dragonfly_io_close(input);
+	sleep(1);
+	shutdown_threads();
+	
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);

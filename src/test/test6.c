@@ -158,7 +158,7 @@ void SELF_TEST6(const char *dragonfly_root)
 	write_file(CONFIG_TEST_FILE, CONFIG_LUA);
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
-	
+
 	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
@@ -206,8 +206,10 @@ void SELF_TEST6(const char *dragonfly_root)
 	}
 
 	pthread_join(tinfo, NULL);
-	shutdown_threads();
 	dragonfly_io_close(input);
+	sleep(1);
+	shutdown_threads();
+
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);
