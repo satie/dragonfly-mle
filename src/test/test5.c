@@ -203,6 +203,7 @@ void SELF_TEST5(const char *dragonfly_root)
 	}
 	pthread_join(tinfo, NULL);
 	dragonfly_io_close(pump_out);
+	sleep (1);
 	shutdown_threads();
 
 

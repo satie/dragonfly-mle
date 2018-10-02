@@ -170,7 +170,7 @@ void SELF_TEST9(const char *dragonfly_root)
 	remove(FILTER_TEST_FILE);
 	remove(ANALYZER_TEST_FILE);
 	fprintf(stderr, "-------------------------------------------------------\n\n");
-		fflush(stderr);
+	fflush(stderr);
 }
 
 /*

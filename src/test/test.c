@@ -85,7 +85,7 @@ void dragonfly_mle_test(const char *dragonfly_root)
 
 	SELF_TEST1(dragonfly_root);
 	sleep(WAIT_INTERVAL);
-*/
+
 	SELF_TEST2(dragonfly_root);
 	sleep(WAIT_INTERVAL);
 
@@ -100,10 +100,10 @@ void dragonfly_mle_test(const char *dragonfly_root)
 
 	SELF_TEST6(dragonfly_root);
 	sleep(WAIT_INTERVAL);
-
+*/
 	SELF_TEST7(dragonfly_root);
 	sleep(WAIT_INTERVAL);
-
+/*
 	sleep(WAIT_INTERVAL);
 	SELF_TEST8(dragonfly_root);
 	sleep(WAIT_INTERVAL);
@@ -113,7 +113,7 @@ void dragonfly_mle_test(const char *dragonfly_root)
 
 	SELF_TEST10(dragonfly_root);
 	sleep(WAIT_INTERVAL);
-
+*/
 	rmdir(analyzer_dir);
 	rmdir(filter_dir);
 	rmdir(config_dir);

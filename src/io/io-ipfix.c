@@ -50,9 +50,11 @@
  */
 DF_HANDLE *ipfix_open(const char *ipfix_uri, int spec)
 {
-      // parse ipfix_uri
+        //TODO: finish this
+        syslog(LOG_ERR, "%s: currently not supported.", __FUNCTION__);
+        exit(EXIT_FAILURE);
 
-        
+        int io_type = 0;
 
         DF_HANDLE *dh = (DF_HANDLE *)malloc(sizeof(DF_HANDLE));
         if (!dh)
@@ -64,7 +66,7 @@ DF_HANDLE *ipfix_open(const char *ipfix_uri, int spec)
 
         //dh->fd = socket_handle;
         dh->io_type = io_type;
-        dh->path = strndup(ipfx_uri, PATH_MAX);
+        dh->path = strndup(ipfix_uri, PATH_MAX);
 #ifdef __DEBUG3__
         syslog(LOG_INFO, "%s: %s", __FUNCTION__, path);
 #endif

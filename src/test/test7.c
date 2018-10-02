@@ -71,7 +71,9 @@ static const char *ANALYZER_LUA =
 	"function setup()\n"
 	"end\n"
 	"function loop (tbl)\n"
-	"   dragonfly.output_event (default_output, tbl.msg)\n"
+	"   if tbl then\n"
+	"   	dragonfly.output_event (default_output, tbl.msg)\n"
+	"	end\n"
 	"end\n\n";
 /*
  * ---------------------------------------------------------------------------------------
@@ -120,9 +122,9 @@ static void *producer_thread(void *ptr)
 		if (i == truncate_record)
 		{
 			dragonfly_io_close(pump);
-			unlink("/var/log/dragonfly-mle/input.txt");
+			//unlink("/tmp/input.txt");
 			fprintf(stderr, "SELF_TEST7: truncating file input.txt\n");
-			pump = dragonfly_io_open("file://input.txt", DF_OUT);
+			pump = dragonfly_io_open("file://input.txt<", DF_OUT);
 			if (!pump)
 			{
 				fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
@@ -149,9 +151,9 @@ static void *producer_thread(void *ptr)
 		}
 		usleep(sleep_time);
 	}
-	g_running = 0;
 	dragonfly_io_close(pump);
-	sleep(1);
+	sleep(3);
+	g_running = 0;
 	return (void *)NULL;
 }
 /*
@@ -208,6 +210,10 @@ void SELF_TEST7(const char *dragonfly_root)
 			perror(__FUNCTION__);
 			abort();
 		}
+		else if (len ==0)
+		{
+			break;
+		}
 		if ((++i > 0) && (i % QUANTUM) == 0)
 		{
 			clock_t mark_time = clock();
@@ -218,8 +224,8 @@ void SELF_TEST7(const char *dragonfly_root)
 		}
 	}
 	pthread_join(tinfo, NULL);
-
 	dragonfly_io_close(input);
+	sleep (1);
 	shutdown_threads();
 	closelog();
 

@@ -149,10 +149,9 @@ void SELF_TEST2(const char *dragonfly_root)
 
 		dragonfly_io_write(pump, buffer);
 	}
+	dragonfly_io_close(pump);
 	sleep(1);
 	shutdown_threads();
-
-	dragonfly_io_close(pump);
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);
