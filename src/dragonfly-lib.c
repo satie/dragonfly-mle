@@ -136,7 +136,7 @@ int luaopen_dragonfly_functions(lua_State *L)
 void signal_abort(int signum)
 {
     g_running = 0;
-    syslog(LOG_ERR, "%s", __FUNCTION__);
+    syslog(LOG_INFO, "%s", __FUNCTION__);
 }
 /*
  * ---------------------------------------------------------------------------------------
@@ -159,13 +159,13 @@ static void lua_disable_io(lua_State *L)
  */
 void signal_term(int signum)
 {
+    syslog(LOG_INFO, "%s", __FUNCTION__);
     g_running = 0;
     if (g_analyzer_pid > 0)
     {
         // tell child process to shutdown
         kill(g_analyzer_pid, SIGTERM);
     }
-    syslog(LOG_INFO, "shutting down");
 }
 
 /*
@@ -905,7 +905,7 @@ void destroy_configuration()
 void initialize_configuration(const char *rootdir, const char *logdir, const char *rundir)
 {
     umask(022);
-
+    g_verbose = isatty(1);
     g_num_analyzer_threads = 0;
     g_num_input_threads = 0;
     g_num_output_threads = 0;
@@ -942,7 +942,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         strncpy(g_log_dir, logdir, PATH_MAX);
     }
     dragonfly_io_set_logdir(g_log_dir);
-    
+
     /*
 	 * Make sure log directory exists
 	 */
@@ -1290,7 +1290,7 @@ void startup_threads()
      */
     g_timer_list[0].tag = strdup(g_output_list[0].tag);
     g_timer_list[0].queue = g_output_list[0].queue;
-    
+
     /* all the other analyzers */
     for (int i = 1; i < MAX_ANALYZER_STREAMS; i++)
     {
@@ -1389,12 +1389,6 @@ void startup_threads()
 
 static void launch_lua_threads()
 {
-    g_verbose = isatty(1);
-
-    signal(SIGABRT, signal_abort);
-    signal(SIGTERM, signal_term);
-    signal(SIGPIPE, SIG_IGN);
-
     if (chdir(g_run_dir) != 0)
     {
         syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
@@ -1427,7 +1421,13 @@ static void launch_lua_threads()
 
 void dragonfly_mle_run(const char *rootdir, const char *logdir, const char *rundir)
 {
+
+    //signal(SIGPIPE, SIG_IGN);
+
     initialize_configuration(rootdir, logdir, rundir);
+
+    signal(SIGABRT, signal_abort);
+    signal(SIGTERM, signal_term);
     launch_lua_threads();
 }
 

@@ -41,7 +41,7 @@
 
 #define MAX_TEST7_MESSAGES 100000
 #define QUANTUM (MAX_TEST7_MESSAGES / 10)
-uint64_t g_running;
+extern uint64_t g_running;
 pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
@@ -99,11 +99,24 @@ static void write_file(const char *file_path, const char *content)
  *
  * ---------------------------------------------------------------------------------------
  */
+static void signal_shutdown7(int signum)
+{
+	g_running = 0;
+	syslog(LOG_INFO, "%s", __FUNCTION__);
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
 static void *producer_thread(void *ptr)
 {
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "writer");
 #endif
+
+
 	DF_HANDLE *pump = dragonfly_io_open("file://input7.txt<", DF_OUT);
 	if (!pump)
 	{
@@ -116,25 +129,27 @@ static void *producer_thread(void *ptr)
 	 * write messages walking the alphabet
 	 */
 	pthread_barrier_wait(&barrier);
+	pthread_detach(pthread_self());
+
 	int truncate_record = (MAX_TEST7_MESSAGES / 100);
 	char buffer[1024];
 	int mod = 0;
-	int sleep_time = 50;
+	int sleep_time = 10;
 	for (unsigned long i = 0; i < MAX_TEST7_MESSAGES; i++)
 	{
 		if (i == truncate_record)
 		{
-			fprintf(stderr, "SELF_TEST7: truncating file input.txt\n");
+			/* give consumer time to read records */
+			sleep (2);
 			dragonfly_io_close(pump);
-			///unlink("/tmp/input7.txt");
 			pump = dragonfly_io_open("file://input7.txt<", DF_OUT);
 			if (!pump)
 			{
 				fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 				perror(__FUNCTION__);
-				abort();
+				break;
 			}
-			sleep_time = 50;
+			fprintf(stderr, "SELF_TEST7: %s truncated file input.txt\n", __FUNCTION__);
 		}
 		char msg[128];
 		for (int j = 0; j < (sizeof(msg) - 1); j++)
@@ -150,12 +165,13 @@ static void *producer_thread(void *ptr)
 		{
 			fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 			perror(__FUNCTION__);
-			abort();
+			break;
 		}
 		usleep(sleep_time);
 	}
 	dragonfly_io_close(pump);
-	g_running = 0;
+	/* send a signal to shutdown */
+	kill(getpid(), SIGINT);
 	return (void *)NULL;
 }
 /*
@@ -171,13 +187,12 @@ void SELF_TEST7(const char *dragonfly_root)
 	/*
 	 * generate lua scripts
 	 */
-
 	write_file(CONFIG_TEST_FILE, CONFIG_LUA);
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
 
-	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
+	signal(SIGINT, signal_shutdown7);
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
@@ -212,8 +227,7 @@ void SELF_TEST7(const char *dragonfly_root)
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
 		if (len < 0)
 		{
-			perror(__FUNCTION__);
-			abort();
+			break;
 		}
 		else if (len == 0)
 		{
@@ -227,11 +241,9 @@ void SELF_TEST7(const char *dragonfly_root)
 			fprintf(stderr, "\t%6.2f/sec\n", ops_per_sec);
 			last_time = mark_time;
 		}
-		usleep(5);
 	}
 	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
-	pthread_join(tinfo, NULL);
-	sleep(1);
+
 	dragonfly_io_close(input);
 	shutdown_threads();
 	pthread_barrier_destroy(&barrier);

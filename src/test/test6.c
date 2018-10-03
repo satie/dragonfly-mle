@@ -42,6 +42,7 @@
 #define MAX_TEST6_MESSAGES 10000
 #define QUANTUM (MAX_TEST6_MESSAGES / 10)
 #define INPUT_FILE "input6.txt"
+extern uint64_t g_running;
 
 pthread_barrier_t barrier;
 
@@ -97,11 +98,23 @@ static void write_file(const char *file_path, const char *content)
  *
  * ---------------------------------------------------------------------------------------
  */
+static void signal_shutdown6(int signum)
+{
+	g_running = 0;
+	syslog(LOG_INFO, "%s", __FUNCTION__);
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
 static void *writer_thread(void *ptr)
 {
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "writer");
 #endif
+
 	char path[PATH_MAX];
 	snprintf(path, sizeof(path), "file://%s<", INPUT_FILE);
 	DF_HANDLE *pump = dragonfly_io_open(path, DF_OUT);
@@ -112,7 +125,7 @@ static void *writer_thread(void *ptr)
 		abort();
 	}
 	pthread_barrier_wait(&barrier);
-	
+	pthread_detach(pthread_self());
 	/*
 	 * write messages walking the alphabet
 	 */
@@ -160,11 +173,11 @@ void SELF_TEST6(const char *dragonfly_root)
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
 
-	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
+	signal(SIGINT, signal_shutdown6);
 	pthread_barrier_init(&barrier, NULL, 2);
 	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
 
@@ -194,8 +207,7 @@ void SELF_TEST6(const char *dragonfly_root)
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
 		if (len < 0)
 		{
-			perror(__FUNCTION__);
-			abort();
+			break;
 		}
 		else if (len == 0)
 		{
@@ -210,10 +222,10 @@ void SELF_TEST6(const char *dragonfly_root)
 			last_time = mark_time;
 		}
 	}
-	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
-	pthread_join(tinfo, NULL);
-
+	syslog(LOG_INFO, "shutting down");
 	shutdown_threads();
+	kill(getpid(), SIGINT);
+	sleep(2);
 	dragonfly_io_close(input);
 	pthread_barrier_destroy(&barrier);
 	closelog();
