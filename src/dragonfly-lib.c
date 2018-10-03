@@ -63,8 +63,8 @@ extern int g_verbose;
 extern int g_chroot;
 extern int g_drop_priv;
 
-uint64_t g_running = 1;
-uint64_t g_initialized = 0;
+uint64_t volatile g_running = 1;
+uint64_t volatile g_initialized = 0;
 
 static char g_root_dir[PATH_MAX];
 static char g_run_dir[PATH_MAX];
@@ -412,14 +412,23 @@ void lua_flywheel_loop(INPUT_CONFIG *flywheel)
     while (g_running)
     {
 
-        if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) <= 0)
+        if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) < 0)
         {
-            syslog(LOG_ERR, "%s: dragonfly_io_read() error", __FUNCTION__);
+            if (g_running)
+            {
+                syslog(LOG_ERR, "%s: dragonfly_io_read() error", __FUNCTION__);
+            }
 #ifdef __DEBUG3__
             fprintf(stderr, "DEBUG-> %s (%i): read ERROR\n", __FUNCTION__, __LINE__);
 #endif
             return;
         }
+        /*
+        else if (n==0)
+        {
+            syslog(LOG_ERR, "%s: dragonfly_io_read() zero", __FUNCTION__);
+        }
+        */
         else if (n == _MAX_BUFFER_SIZE_)
         {
             syslog(LOG_ERR, "%s: skipping message; exceeded buffer size of %d", __FUNCTION__, _MAX_BUFFER_SIZE_);

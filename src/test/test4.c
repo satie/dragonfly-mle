@@ -153,6 +153,7 @@ void SELF_TEST4(const char *dragonfly_root)
 			kill(getpid(), SIGUSR1);
 		}
 	}
+	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
 	dragonfly_io_close(pump);
 	sleep(1);
 	shutdown_threads();

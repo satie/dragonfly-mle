@@ -41,9 +41,9 @@
 
 #include "dragonfly-lib.h"
 #include "dragonfly-io.h"
-extern int g_running;
+extern uint64_t g_running;
 
-#define WAIT_INTERVAL 2
+#define WAIT_INTERVAL 3
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -104,7 +104,6 @@ void dragonfly_mle_test(const char *dragonfly_root)
 	SELF_TEST7(dragonfly_root);
 	sleep(WAIT_INTERVAL);
 /*
-	sleep(WAIT_INTERVAL);
 	SELF_TEST8(dragonfly_root);
 	sleep(WAIT_INTERVAL);
 

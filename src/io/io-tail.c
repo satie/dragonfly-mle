@@ -36,13 +36,14 @@
 #include <sys/time.h>
 #include <time.h>
 #include <fcntl.h>
+#include <stdint.h>
 
 #include "dragonfly-io.h"
 #include "config.h"
 
 #define TEN_SECONDS (10)
 #define FIVE_SECONDS (5)
-
+extern uint64_t g_running;
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -169,13 +170,14 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
         int i = 0;
         do
         {
-                if (dh->fd < 0)
+                if (!g_running) return 0;
+                if ((dh->fd < 0) && g_running)
                 {
                         dh->fd = tail_open_nonblock_file(dh->path);
                         if (dh->fd < 0)
                         {
                                 open_failures++;
-                                if (open_failures > 10)
+                                if (open_failures > 5)
                                 {
                                         return -1;
                                 }
@@ -183,6 +185,7 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                                 continue;
                         }
                 }
+                if (!g_running) return 0;
                 int n = read(dh->fd, &buffer[i], 1);
                 if (n < 0)
                 {
@@ -199,6 +202,8 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                 }
                 else if (n == 0)
                 {
+                        if (!g_running)
+                                return 0;
                         if (fstat(dh->fd, &fdstat) < 0)
                         {
                                 syslog(LOG_ERR, "unable to fstat: %s\n", strerror(errno));
@@ -208,9 +213,9 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
 #endif
                         if (fdstat.st_size < lastFileSize)
                         {
-#ifdef __DEBUG3__
+//#ifdef __DEBUG3__
                                 fprintf(stderr, "file was truncated\n");
-#endif
+//#endif
                                 lseek(dh->fd, 0, SEEK_SET);
                                 i = 0;
                         }
@@ -253,7 +258,7 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                 {
                         i++;
                 }
-        } while (!end_of_line && (i < len));
+        } while (g_running && !end_of_line && (i < len));
         buffer[i] = '\0';
         return i;
 }
@@ -271,7 +276,7 @@ int tail_read_line(DF_HANDLE *dh, char *buffer, int max)
                 n = tail_next_line(dh, buffer, max);
                 // when n == 0, then skip to the next line
                 // because n ==0 is an empty string with just "\n"
-        } while (n == 0);
+        } while (n == 0 && g_running);
         return n;
 }
 
@@ -282,10 +287,7 @@ int tail_read_line(DF_HANDLE *dh, char *buffer, int max)
  */
 void tail_close(DF_HANDLE *dh)
 {
-#ifdef __DEBUG3__
-        fprintf(stderr, "%s: line %d\n", __FUNCTION__, __LINE__);
-#endif
-        if (dh)
+        if (dh && dh->fd > 0)
         {
                 close(dh->fd);
                 dh->fd = -1;

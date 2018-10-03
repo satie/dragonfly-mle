@@ -41,11 +41,13 @@
 
 #define MAX_TEST6_MESSAGES 10000
 #define QUANTUM (MAX_TEST6_MESSAGES / 10)
-#define INPUT_FILE "input.txt"
+#define INPUT_FILE "input6.txt"
+
+pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"tail://input.txt<\", script=\"filter.lua\", default_analyzer=\"test6\"}\n"
+	"   { tag=\"input\", uri=\"tail://input6.txt<\", script=\"filter.lua\", default_analyzer=\"test6\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
@@ -53,7 +55,7 @@ static const char *CONFIG_LUA =
 	"}\n"
 	"\n"
 	"outputs = {\n"
-	"    { tag=\"log6\", uri=\"ipc://output.ipc\"},\n"
+	"    { tag=\"log6\", uri=\"ipc://output6.ipc\"},\n"
 	"}\n"
 	"\n";
 
@@ -109,6 +111,8 @@ static void *writer_thread(void *ptr)
 		perror(__FUNCTION__);
 		abort();
 	}
+	pthread_barrier_wait(&barrier);
+	
 	/*
 	 * write messages walking the alphabet
 	 */
@@ -136,7 +140,7 @@ static void *writer_thread(void *ptr)
 		usleep(10);
 	}
 	dragonfly_io_close(pump);
-	//fprintf(stderr, "%s: %lu records written\n", __FILE__, i);
+	fprintf(stderr, "%s: %lu records written\n", __FILE__, i);
 	return (void *)NULL;
 }
 /*
@@ -146,7 +150,7 @@ static void *writer_thread(void *ptr)
  */
 void SELF_TEST6(const char *dragonfly_root)
 {
-	fprintf(stderr, "\n\n%s: tailing %d messages from input to output.ipc\n", __FUNCTION__, MAX_TEST6_MESSAGES);
+	fprintf(stderr, "\n\n%s: tailing %d messages from input to output6.ipc\n", __FUNCTION__, MAX_TEST6_MESSAGES);
 	fprintf(stderr, "-------------------------------------------------------\n");
 	/*
 	 * generate lua scripts
@@ -155,15 +159,16 @@ void SELF_TEST6(const char *dragonfly_root)
 	write_file(CONFIG_TEST_FILE, CONFIG_LUA);
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
-	
+
 	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
+	pthread_barrier_init(&barrier, NULL, 2);
 	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
 
-	DF_HANDLE *input = dragonfly_io_open("ipc://output.ipc", DF_IN);
+	DF_HANDLE *input = dragonfly_io_open("ipc://output6.ipc", DF_IN);
 	if (!input)
 	{
 		perror(__FUNCTION__);
@@ -176,8 +181,9 @@ void SELF_TEST6(const char *dragonfly_root)
 		perror(__FUNCTION__);
 		abort();
 	}
-
 	startup_threads();
+	pthread_barrier_wait(&barrier);
+
 	/*
 	 * write messages walking the alphabet
 	 */
@@ -204,11 +210,12 @@ void SELF_TEST6(const char *dragonfly_root)
 			last_time = mark_time;
 		}
 	}
-
+	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
 	pthread_join(tinfo, NULL);
-	dragonfly_io_close(input);
-	shutdown_threads();
 
+	shutdown_threads();
+	dragonfly_io_close(input);
+	pthread_barrier_destroy(&barrier);
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);

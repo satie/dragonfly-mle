@@ -39,13 +39,14 @@
 
 #include "test.h"
 
-#define MAX_TEST7_MESSAGES 10000
+#define MAX_TEST7_MESSAGES 100000
 #define QUANTUM (MAX_TEST7_MESSAGES / 10)
-static int g_running = 1;
+uint64_t g_running;
+pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"tail://input.txt\", script=\"filter.lua\", default_analyzer=\"test7\"}\n"
+	"   { tag=\"input\", uri=\"tail://input7.txt<\", script=\"filter.lua\", default_analyzer=\"test7\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
@@ -103,16 +104,18 @@ static void *producer_thread(void *ptr)
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "writer");
 #endif
-	DF_HANDLE *pump = dragonfly_io_open("file://input.txt<", DF_OUT);
+	DF_HANDLE *pump = dragonfly_io_open("file://input7.txt<", DF_OUT);
 	if (!pump)
 	{
 		fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 		perror(__FUNCTION__);
 		abort();
 	}
+
 	/*
 	 * write messages walking the alphabet
 	 */
+	pthread_barrier_wait(&barrier);
 	int truncate_record = (MAX_TEST7_MESSAGES / 100);
 	char buffer[1024];
 	int mod = 0;
@@ -121,17 +124,17 @@ static void *producer_thread(void *ptr)
 	{
 		if (i == truncate_record)
 		{
-			dragonfly_io_close(pump);
-			//unlink("/tmp/input.txt");
 			fprintf(stderr, "SELF_TEST7: truncating file input.txt\n");
-			pump = dragonfly_io_open("file://input.txt<", DF_OUT);
+			dragonfly_io_close(pump);
+			///unlink("/tmp/input7.txt");
+			pump = dragonfly_io_open("file://input7.txt<", DF_OUT);
 			if (!pump)
 			{
 				fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 				perror(__FUNCTION__);
 				abort();
 			}
-			sleep_time = 1;
+			sleep_time = 50;
 		}
 		char msg[128];
 		for (int j = 0; j < (sizeof(msg) - 1); j++)
@@ -152,7 +155,6 @@ static void *producer_thread(void *ptr)
 		usleep(sleep_time);
 	}
 	dragonfly_io_close(pump);
-	sleep(3);
 	g_running = 0;
 	return (void *)NULL;
 }
@@ -179,6 +181,7 @@ void SELF_TEST7(const char *dragonfly_root)
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
+	pthread_barrier_init(&barrier, NULL, 2);
 	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
 
 	DF_HANDLE *input = dragonfly_io_open("ipc://test7.ipc", DF_IN);
@@ -202,6 +205,8 @@ void SELF_TEST7(const char *dragonfly_root)
 	unsigned long i = 0;
 	char buffer[4096];
 	clock_t last_time = clock();
+
+	pthread_barrier_wait(&barrier);
 	while (g_running)
 	{
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
@@ -210,7 +215,7 @@ void SELF_TEST7(const char *dragonfly_root)
 			perror(__FUNCTION__);
 			abort();
 		}
-		else if (len ==0)
+		else if (len == 0)
 		{
 			break;
 		}
@@ -222,11 +227,15 @@ void SELF_TEST7(const char *dragonfly_root)
 			fprintf(stderr, "\t%6.2f/sec\n", ops_per_sec);
 			last_time = mark_time;
 		}
+		usleep(5);
 	}
+	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
 	pthread_join(tinfo, NULL);
+	sleep(1);
 	dragonfly_io_close(input);
-	sleep (1);
 	shutdown_threads();
+	pthread_barrier_destroy(&barrier);
+
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);
