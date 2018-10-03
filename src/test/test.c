@@ -97,7 +97,7 @@ void dragonfly_mle_test(const char *dragonfly_root)
 
 	SELF_TEST5(dragonfly_root);
 	sleep(WAIT_INTERVAL);
-*/
+
 	SELF_TEST6(dragonfly_root);
 	sleep(WAIT_INTERVAL);
 
