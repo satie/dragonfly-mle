@@ -32,7 +32,7 @@ redis_port = "6379"
 -- Input queues/processors
 -- -----------------------------------------------------------
 inputs = {
-   { tag="eve", uri="tail:///var/log/suricata/eve.json", script="suricata-filter.lua"}, --Split messages based on type
+   { tag="eve", uri="tail:///var/log/suricata/eve.json", script="suricata-filter.lua", default_analyzer="alert"}, --Split messages based on type
    --{ tag="flow2", uri="ipc://flow-ipc.log", script="passthrough-filter.lua"}
 }
 
@@ -43,8 +43,8 @@ analyzers = {
    -- ---------------------------------------------------------
    -- General examples 
    -- ---------------------------------------------------------
-   { tag="alert", script="example-alert.lua" }, -- No-op alert analyzer
-   { tag="nsm", script="example-nsm.lua" }, -- Simple JSON annotator example
+   { tag="alert", script="example-alert.lua", default_analyzer="", default_output="log" }, -- No-op alert analyzer
+   { tag="nsm", script="example-nsm.lua" , default_analyzer="", default_output="log"}, -- Simple JSON annotator example
    -- { tag="tls", script="example-tls.lua" }, -- Third-party lookup
    -- { tag="dns", script="example-dns.lua" }, -- Third-party lookup
    -- { tag="flow", script="example-flow.lua" }, -- Third-party lookup
