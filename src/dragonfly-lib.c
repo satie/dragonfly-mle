@@ -75,7 +75,12 @@ static char g_config_file[PATH_MAX];
 static int g_analyzer_pid = -1;
 static int g_num_analyzer_threads = 0;
 static int g_num_input_threads = 0;
+static int g_num_flywheel_threads = 0;
 static int g_num_output_threads = 0;
+
+//static pthread_barrier_t g_analyzer_barrier;
+static pthread_barrier_t g_flywheel_barrier;
+static pthread_barrier_t g_output_barrier;
 
 char *g_redis_host = NULL;
 int g_redis_port = 6379;
@@ -458,8 +463,10 @@ static void *lua_flywheel_thread(void *ptr)
 #endif
     syslog(LOG_NOTICE, "Running %s\n", flywheel->tag);
 
+    pthread_barrier_wait(&g_flywheel_barrier);
     while (g_running)
     {
+        syslog(LOG_NOTICE, "%s: opening %s\n", flywheel->tag, flywheel->uri);
         if ((flywheel->input = dragonfly_io_open(flywheel->uri, DF_IN)) == NULL)
         {
             break;
@@ -662,7 +669,7 @@ void lua_output_loop(OUTPUT_CONFIG *output)
                     fprintf(stderr, "%s: output error\n", __FUNCTION__);
                     return;
                 }
-                g_stats->output++;
+                if (g_stats) g_stats->output++;
             }
         }
     }
@@ -683,6 +690,7 @@ static void *lua_output_thread(void *ptr)
 #endif
     syslog(LOG_NOTICE, "Running %s\n", output->tag);
 
+    pthread_barrier_wait(&g_output_barrier);
     while (g_running)
     {
         if ((output->output = dragonfly_io_open(output->uri, DF_OUT)) == NULL)
@@ -746,7 +754,7 @@ void lua_analyzer_loop(lua_State *L, ANALYZER_CONFIG *analyzer)
             }
             lua_pop(L, 1);
 
-            g_stats->analysis++;
+            if (g_stats) g_stats->analysis++;
         }
     }
 }
@@ -858,7 +866,7 @@ static void *lua_analyzer_thread(void *ptr)
     lua_pop(L, 1);
 
     syslog(LOG_NOTICE, "Running %s\n", analyzer->tag);
-
+    //pthread_barrier_wait(&g_analyzer_barrier);
     while (g_running)
     {
         lua_analyzer_loop(L, analyzer);
@@ -889,6 +897,7 @@ void destroy_configuration()
 
         g_num_analyzer_threads = 0;
         g_num_input_threads = 0;
+        g_num_flywheel_threads = 0;
         g_num_output_threads = 0;
         memset(g_analyzer_list, 0, sizeof(g_analyzer_list));
         memset(g_input_list, 0, sizeof(g_input_list));
@@ -908,6 +917,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     g_verbose = isatty(1);
     g_num_analyzer_threads = 0;
     g_num_input_threads = 0;
+    g_num_flywheel_threads = 0;
     g_num_output_threads = 0;
     memset(g_analyzer_list, 0, sizeof(g_analyzer_list));
     memset(g_input_list, 0, sizeof(g_input_list));
@@ -1015,7 +1025,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     if (luaL_loadfile(L, g_config_file))
     {
         syslog(LOG_ERR, "luaL_loadfile failed; %s", lua_tostring(L, -1));
-        abort();
+        exit(EXIT_FAILURE);
     }
     if (lua_pcall(L, 0, 0, 0) == LUA_ERRRUN)
     {
@@ -1045,22 +1055,22 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     if ((g_num_analyzer_threads = load_analyzers_config(L, g_analyzer_list, MAX_ANALYZER_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_analyzer_config failed");
-        abort();
+        exit(EXIT_FAILURE);
     }
     if ((g_num_output_threads = load_outputs_config(L, g_output_list, MAX_OUTPUT_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_output_config failed");
-        abort();
+        exit(EXIT_FAILURE);
     }
     if ((g_num_input_threads = load_inputs_config(L, g_input_list, MAX_INPUT_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_input_config failed");
-        abort();
+        exit(EXIT_FAILURE);
     }
     if ((load_responder_config(L, g_responder_list, MAX_RESPONDER_COMMANDS)) < 0)
     {
         syslog(LOG_ERR, "load_responder_config failed");
-        abort();
+        exit(EXIT_FAILURE);
     }
     lua_close(L);
     g_initialized = 1;
@@ -1102,7 +1112,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         exit(EXIT_FAILURE);
     }
     //syslog(LOG_INFO, "chroot: %s\n", g_root_dir);
-
+    //pthread_barrier_init(&g_analyzer_barrier, NULL, g_num_analyzer_threads + 1);
     for (int i = 0; i < MAX_ANALYZER_STREAMS; i++)
     {
         if (g_analyzer_list[i].queue != NULL)
@@ -1119,6 +1129,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
             }
         }
     }
+    //pthread_barrier_wait(&g_analyzer_barrier);
 
     /*
     * Create timer thread
@@ -1144,6 +1155,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     {
         pthread_join(g_analyzer_thread[n++], NULL);
     }
+
     for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
     {
         msgqueue_cancel(g_analyzer_list[i].queue);
@@ -1254,6 +1266,8 @@ void shutdown_threads()
         //fprintf(stderr, "%s:%i joining\n", __FUNCTION__, __LINE__);
         pthread_join(g_io_thread[n++], NULL);
     }
+    pthread_barrier_destroy(&g_flywheel_barrier);
+    pthread_barrier_destroy(&g_output_barrier);
     int status;
     waitpid(-1, &status, 0);
 
@@ -1343,7 +1357,8 @@ void startup_threads()
         }
         // make a copy
         memcpy(g_flywheel_list, g_input_list, sizeof(g_flywheel_list));
-
+        g_num_flywheel_threads = g_num_input_threads;
+        pthread_barrier_init(&g_flywheel_barrier, NULL, g_num_flywheel_threads + 1);
         for (int i = 0; i < MAX_INPUT_STREAMS; i++)
         {
             if (g_flywheel_list[i].queue != NULL)
@@ -1355,7 +1370,9 @@ void startup_threads()
                 }
             }
         }
+        pthread_barrier_wait(&g_flywheel_barrier);
 
+        pthread_barrier_init(&g_output_barrier, NULL, g_num_output_threads + 1);
         for (int i = 0; i < MAX_OUTPUT_STREAMS; i++)
         {
             if (g_output_list[i].queue != NULL)
@@ -1373,6 +1390,8 @@ void startup_threads()
                 }
             }
         }
+        pthread_barrier_wait(&g_output_barrier);
+
         if (0 && g_drop_priv)
         {
             process_drop_privilege();
@@ -1429,6 +1448,16 @@ void dragonfly_mle_run(const char *rootdir, const char *logdir, const char *rund
     signal(SIGABRT, signal_abort);
     signal(SIGTERM, signal_term);
     launch_lua_threads();
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+void dragonfly_mle_break()
+{
+    g_running = 0;
 }
 
 /*

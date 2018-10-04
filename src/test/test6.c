@@ -42,7 +42,6 @@
 #define MAX_TEST6_MESSAGES 10000
 #define QUANTUM (MAX_TEST6_MESSAGES / 10)
 #define INPUT_FILE "input6.txt"
-extern uint64_t g_running;
 
 pthread_barrier_t barrier;
 
@@ -100,7 +99,7 @@ static void write_file(const char *file_path, const char *content)
  */
 static void signal_shutdown6(int signum)
 {
-	g_running = 0;
+	dragonfly_mle_break();
 	syslog(LOG_INFO, "%s", __FUNCTION__);
 }
 
@@ -122,7 +121,7 @@ static void *writer_thread(void *ptr)
 	{
 		fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
 	pthread_barrier_wait(&barrier);
 	pthread_detach(pthread_self());
@@ -148,7 +147,7 @@ static void *writer_thread(void *ptr)
 		{
 			fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 			perror(__FUNCTION__);
-			abort();
+			exit (EXIT_FAILURE);
 		}
 		usleep(10);
 	}
@@ -185,23 +184,23 @@ void SELF_TEST6(const char *dragonfly_root)
 	if (!input)
 	{
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
 
 	pthread_t tinfo;
 	if (pthread_create(&tinfo, NULL, writer_thread, (void *)NULL) != 0)
 	{
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
 	startup_threads();
-	pthread_barrier_wait(&barrier);
 
 	/*
 	 * write messages walking the alphabet
 	 */
 	char buffer[4096];
 	clock_t last_time = clock();
+	pthread_barrier_wait(&barrier);
 	for (unsigned long i = 0; i < MAX_TEST6_MESSAGES; i++)
 	{
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
@@ -222,9 +221,9 @@ void SELF_TEST6(const char *dragonfly_root)
 			last_time = mark_time;
 		}
 	}
-	syslog(LOG_INFO, "shutting down");
 	shutdown_threads();
 	kill(getpid(), SIGINT);
+	syslog(LOG_INFO, "shutting down");
 	sleep(2);
 	dragonfly_io_close(input);
 	pthread_barrier_destroy(&barrier);

@@ -172,7 +172,7 @@ void SELF_TEST5(const char *dragonfly_root)
 	if (!pump_out)
 	{
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
 	/*
 	 * write messages walking the alphabet

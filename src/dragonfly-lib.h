@@ -28,6 +28,7 @@
 #include "test.h"
 
 void dragonfly_mle_run (const char *rootdir, const char *logdir, const char *rundir);
+void dragonfly_mle_break();
 
 void shutdown_threads();
 void startup_threads();

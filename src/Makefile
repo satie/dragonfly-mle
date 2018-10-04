@@ -8,7 +8,7 @@ CFLAGS = $(LINUX_CFLAGS)
 LINUX_CC = gcc
 LINUX_CFLAGS = -O2 -Wall -march=native -Werror
 BSD_CC = cc
-BSD_CFLAGS = -O2 -Wall -march=native -Werror -Wno-error=tautological-pointer-compare
+BSD_CFLAGS = -g -O2 -Wall -march=native -Werror -Wno-error=tautological-pointer-compare
 
 
 INCLUDES = -I. -I/usr/local/include -I./io -I./test -I./lib/msgqueue -I./resp \

@@ -294,8 +294,7 @@ int dragonfly_io_isfile(DF_HANDLE *dh)
 {
         if (dh &&
             ((dh->io_type == DF_OUT_FILE_TYPE) ||
-             (dh->io_type == DF_IN_FILE_TYPE) ||
-             (dh->io_type == DF_IN_TAIL_TYPE)))
+             (dh->io_type == DF_IN_FILE_TYPE)))
         {
                 return 1;
         }
