@@ -78,7 +78,6 @@ static int g_num_input_threads = 0;
 static int g_num_flywheel_threads = 0;
 static int g_num_output_threads = 0;
 
-//static pthread_barrier_t g_analyzer_barrier;
 static pthread_barrier_t g_flywheel_barrier;
 static pthread_barrier_t g_output_barrier;
 
@@ -557,10 +556,10 @@ static void *lua_input_thread(void *ptr)
     luaopen_dragonfly_functions(L);
 
     /* set the "default" next hop for this analyzer */
-    if (input->default_analyzer && strnlen (input->default_analyzer, 32) > 0)
+    if (input->default_analyzer && strnlen(input->default_analyzer, 32) > 0)
     {
         lua_pushstring(L, input->default_analyzer);
-        fprintf (stderr,"%s:  default_analyzer: %s\n", __FUNCTION__, input->default_analyzer);
+        fprintf(stderr, "%s:  default_analyzer: %s\n", __FUNCTION__, input->default_analyzer);
         lua_setglobal(L, "default_analyzer");
     }
 
@@ -837,14 +836,14 @@ static void *lua_analyzer_thread(void *ptr)
     }
 
     /* set the "default" next hop for this analyzer */
-    if (analyzer->default_analyzer  && strnlen (analyzer->default_analyzer, 32) > 0)
+    if (analyzer->default_analyzer && strnlen(analyzer->default_analyzer, 32) > 0)
     {
         lua_pushstring(L, analyzer->default_analyzer);
         lua_setglobal(L, "default_analyzer");
     }
 
     /* set the "default" output */
-    if (analyzer->default_output  && strnlen (analyzer->default_output, 32))
+    if (analyzer->default_output && strnlen(analyzer->default_output, 32))
     {
         lua_pushstring(L, analyzer->default_output);
         lua_setglobal(L, "default_output");
@@ -877,7 +876,6 @@ static void *lua_analyzer_thread(void *ptr)
     lua_pop(L, 1);
 
     syslog(LOG_NOTICE, "Running %s\n", analyzer->tag);
-    //pthread_barrier_wait(&g_analyzer_barrier);
     while (g_running)
     {
         lua_analyzer_loop(L, analyzer);
@@ -1117,13 +1115,16 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
 {
     int n = 0;
 
-    if (0 && chroot(dragonfly_analyzer_root) != 0)
+    /*
+     * Make sure analyzer is operating in default root directory
+     */
+    if (chdir(g_root_dir) != 0)
     {
-        syslog(LOG_ERR, "unable to chroot() to : %s - %s\n", g_root_dir, strerror(errno));
+        syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
         exit(EXIT_FAILURE);
     }
-    //syslog(LOG_INFO, "chroot: %s\n", g_root_dir);
-    //pthread_barrier_init(&g_analyzer_barrier, NULL, g_num_analyzer_threads + 1);
+    syslog(LOG_INFO, "root directory: %s\n", g_root_dir);
+
     for (int i = 0; i < MAX_ANALYZER_STREAMS; i++)
     {
         if (g_analyzer_list[i].queue != NULL)
@@ -1140,7 +1141,6 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
             }
         }
     }
-    //pthread_barrier_wait(&g_analyzer_barrier);
 
     /*
     * Create timer thread
@@ -1154,6 +1154,18 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     if (g_drop_priv)
     {
         process_drop_privilege();
+    }
+    /*
+     *
+     */
+    if (g_chroot)
+    {
+        if (chroot(dragonfly_analyzer_root) != 0)
+        {
+            syslog(LOG_ERR, "unable to chroot() to : %s - %s\n", dragonfly_analyzer_root, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        syslog(LOG_INFO, "chroot: %s\n", dragonfly_analyzer_root);
     }
 
     while (g_running)
@@ -1419,21 +1431,18 @@ void startup_threads()
 
 static void launch_lua_threads()
 {
-    if (chdir(g_run_dir) != 0)
-    {
-        syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
-        exit(EXIT_FAILURE);
-    }
-    char *path = getcwd(NULL, PATH_MAX);
-    if (path == NULL)
-    {
-        syslog(LOG_ERR, "getcwd() error - %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    syslog(LOG_INFO, "root dir: %s\n", path);
-    free(path);
 
     startup_threads();
+    /*
+     * Move I/O process to the default run directory
+     */
+    if (chdir(g_run_dir) != 0)
+    {
+        syslog(LOG_ERR, "unable to chdir() to  %s", g_run_dir);
+        exit(EXIT_FAILURE);
+    }
+    syslog(LOG_INFO, "I/O dir: %s\n", g_run_dir);
+
     while (g_running)
     {
         //TODO: listen to REST API here
