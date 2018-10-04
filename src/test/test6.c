@@ -219,9 +219,12 @@ void SELF_TEST6(const char *dragonfly_root)
 			last_time = mark_time;
 		}
 	}
-	shutdown_threads();
 	syslog(LOG_INFO, "shutting down");
-	sleep(2);
+	/* allow time to flush output */
+	sleep (2);
+
+	shutdown_threads();
+
 	dragonfly_io_close(input);
 	pthread_barrier_destroy(&barrier);
 	closelog();

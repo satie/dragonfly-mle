@@ -241,6 +241,8 @@ void SELF_TEST7(const char *dragonfly_root)
 		}
 	}
 	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
+	/* allow time to flush output */
+	sleep (2);
 
 	dragonfly_io_close(input);
 	shutdown_threads();

@@ -2,8 +2,8 @@
 # dragonfly build
 # ------------------------------------------------------------------
 
-CC = $(LINUX_CC)
-CFLAGS = $(LINUX_CFLAGS)
+CC = $(BSD_CC)
+CFLAGS = $(BSD_CFLAGS)
 
 LINUX_CC = gcc
 LINUX_CFLAGS = -O2 -Wall -march=native -Werror
