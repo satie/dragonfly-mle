@@ -152,7 +152,7 @@ DF_HANDLE *ipc_open(const char *ipc_path, int spec)
         else
         {
                 /* default ipc directory */
-                sprintf(addr.sun_path, "%s/%s", DRAGONFLY_RUN_DIR, ipc_path);
+                sprintf(addr.sun_path, "%s/%s", dragonfly_io_get_rundir(), ipc_path);
         }
 
         int s;
@@ -166,7 +166,7 @@ DF_HANDLE *ipc_open(const char *ipc_path, int spec)
 #endif
                 if ((s = bind(socket_handle, (struct sockaddr *)&addr, sizeof(addr))) < 0)
                 {
-                        syslog(LOG_ERR, "unable to bind socket: %s\n", strerror(errno));
+                        syslog(LOG_ERR, "unable to bind socket %s: %s\n", addr.sun_path, strerror(errno));
                         return NULL;
                 }
                 // TODO: need to experiment with this!
@@ -218,6 +218,7 @@ int ipc_read_message(DF_HANDLE *dh, char *buffer, int len)
         int n = read(dh->fd, buffer, len);
         if (n < 0)
         {
+                if (errno==EINTR) return -1;
                 syslog(LOG_ERR, "read error: %s", strerror(errno));
                 perror("read");
                 exit(EXIT_FAILURE);
@@ -239,6 +240,7 @@ int ipc_read_messages(DF_HANDLE *dh, char **buffer, int len, int max)
                 n = read(dh->fd, buffer[v]++, (len - 1));
                 if (n < 0)
                 {
+                        if (errno==EINTR) return -1;
                         syslog(LOG_ERR, "read error: %s", strerror(errno));
                         perror("read");
                         exit(EXIT_FAILURE);

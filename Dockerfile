@@ -29,9 +29,7 @@ RUN rm -rf redis-ml
 #
 #
 RUN mkdir /opt/suricata/; mkdir /opt/suricata/var
-RUN apt-get purge -y build-essential git make; apt-get autoremove ; apt-get autoclean
-#
-#
+RUN apt-get purge -y build-essential git make; apt-get autoremovecd 
 #
 WORKDIR /usr/local/dragonfly-mle
 ENTRYPOINT redis-server --loadmodule /usr/local/lib/redis-ml.so --daemonize yes && /usr/local/dragonfly-mle/bin/dragonfly-mle

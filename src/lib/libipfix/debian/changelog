@@ -1,0 +1,127 @@
+libipfix (0.8.2-1) oneiric; urgency=low
+
+  [ Ramon Masek ]
+  * put some typedef's into ipfix.h
+  * update .gitignore
+  * configure obtain version number from 'debian/changelog'
+  * increase minor version number
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Tue, 19 Jun 2012 19:10:30 +0200
+
+libipfix (0.8.1-1ubuntu6) lucid; urgency=low
+
+  [ Ramón Masek ]
+  * add new information element for 'total memory'
+  * put ipfix_collector and probe into a separate pkg: libipfix-tools
+  * add manpages for ipfix_collector and ipfix_probe
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Tue, 13 Mar 2012 15:19:04 +0100
+
+libipfix (0.8.1-1ubuntu5) lucid; urgency=low
+
+  [ Ramón Masek ]
+  * error correction; causes wrong so-link during package building
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Thu, 12 Jan 2012 14:46:03 +0100
+
+libipfix (0.8.1-1ubuntu4) lucid; urgency=low
+
+  [ Ramón Masek ]
+  * merge of a git repository of a former svn repository
+  * add build script for git-buildpackage
+  * bugfix Makefile
+  * bugfix configure.ac
+
+  [ Julian Vetter ]
+  * Added README file for the ReExporter
+  * Added GPL info to script
+  * Added new information elements for the OpenEPC+PT project (IMSI, APN
+    and BearerClass)
+  * Changed the OpenEPC entries length from 256 to 65535 (deafault for
+    strings)
+  * Changed the numbers of the OpenEPC elements, because I had to add
+    some more elements and they didn't fit into the gap between 392 and
+    402
+  * Fixed a small bug, now every information element should be
+    recognized
+  * Another new information element for the OpenEPC stuff
+  * Added yet another ipfix elment (rule ID) to identify which packet
+    belongs to which rule
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Wed, 11 Jan 2012 17:48:40 +0100
+
+libipfix (0.8.1-1ubuntu3) lucid; urgency=low
+
+  [ Ramón Masek ]
+  * [Makefile.in] add package building rules
+  * [Makefile] different compile rules for static/shared lib (PIC code)
+  * [Makefile.in] change distribution of changelog wiht env DIST=<dist>
+    when build pkg
+  * [debian] add missing header file to libipfix-dev.install
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Thu, 12 May 2011 12:42:49 +0200
+
+libipfix (0.8.1-1ubuntu2) lucid; urgency=low
+
+  [ Carsten Schmoll ]
+  * added two new fields: ProbeName and ProbeLocationName
+  * added odid field for ipfix_template_t and code to use odid when
+    exporting themplate definition as IPFIX
+
+  [ Ramón Masek ]
+  * [lib] a lot of correction making shared library build work;
+  * [libmisc] a lot of correction making shared library build work
+  * [libmisc] remove getopt sources, (not used)
+  * remove config.h - is created by configure
+  * correction of ssl source files; make compile
+  * [debian] add libpcap0.8 dependency
+  * [debian] change libpcap0.8 to libpcap0.8-dev
+  * [debian] add more control information for package generation
+  * [debian] adjust install-file content
+  * [debian] update standards-version; corrections to satisfy lintian
+  * [debian] corrections for package building; satisfy lintions
+  * [Makefile.in] modification of global Makefile
+  * [Makefile] rewriting, add default rules file, used in lib/ and
+    libmisc/
+  * [Makefile]  some correction to install rules; some documentation
+  * [Makefile.in] obtain version number from changelog
+  * [lib/Makefile.in] rewrite makefile with implicit rules
+  * [libmisc/Makefile.in] rewrite makefile with implicit rules
+  * minor correction in configure.ac; update configure
+  * add a TODO
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Thu, 05 May 2011 12:25:39 +0200
+
+libipfix (0.8.1-1ubuntu1) lucid; urgency=low
+
+  [ PRISM User ]
+  * fixed ntohll+htonll bug on MIPS machines (hopefully)
+  * type fix
+  * fixed sequence number bug
+
+  [ Robert Wuttke ]
+  * fixed ht_globals include problem
+  * bleeding edge - synced with current developer-version
+
+  [ Carsten Schmoll ]
+  * makedist script fix
+  * removed Makedfiles from repo.
+  * updated README
+  * changed contact mail
+  * added two new IEs for geo location longitude and latitude (String
+    type)
+
+  [ Ramón Masek ]
+  * add VERSION file
+  * add DESTDIR to makefiles
+  * [debian] add debian directory for package building
+  * [debian] remove shared library installation
+  * [debian] adjust library installation
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Mon, 28 Mar 2011 17:09:03 +0200
+
+libipfix (0.8.1-1) unstable; urgency=low
+
+  * Initial release 
+
+ -- Ramon Masek <ramon.masek@fokus.fraunhofer.de>  Wed, 16 Mar 2011 15:40:50 +0100

@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -37,9 +35,6 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "worker-threads.h"
-#include "dragonfly-io.h"
-
 #include "test.h"
 
 #define MAX_TEST4_MESSAGES 10000
@@ -47,15 +42,15 @@
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\"}\n"
+	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"test4\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"test\", script=\"analyzer.lua\" },\n"
+	"    { tag=\"test4\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"log4\" },\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-	"    { tag=\"log\", uri=\"file://test4.log\"},\n"
+	"    { tag=\"log4\", uri=\"file://test4.log\"},\n"
 	"}\n"
 	"\n";
 
@@ -65,14 +60,14 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   local tbl = cjson_safe.decode(msg)\n"
-	"   dragonfly.analyze_event (\"test\", tbl)\n"
+	"   dragonfly.analyze_event (default_analyzer, tbl)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
 	"function setup()\n"
 	"end\n"
 	"function loop (tbl)\n"
-	"   dragonfly.output_event (\"log\", tbl.msg)\n"
+	"   dragonfly.output_event (default_output, tbl.msg)\n"
 	"end\n\n";
 /*
  * ---------------------------------------------------------------------------------------
@@ -116,7 +111,8 @@ void SELF_TEST4(const char *dragonfly_root)
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
-	startup_threads(dragonfly_root);
+	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
+	startup_threads();
 
 	sleep(1);
 
@@ -155,6 +151,7 @@ void SELF_TEST4(const char *dragonfly_root)
 			kill(getpid(), SIGUSR1);
 		}
 	}
+	fprintf(stderr, "%s: shutting down\n", __FUNCTION__);
 	dragonfly_io_close(pump);
 	sleep(1);
 	shutdown_threads();
@@ -165,9 +162,10 @@ void SELF_TEST4(const char *dragonfly_root)
 	remove(FILTER_TEST_FILE);
 	remove(ANALYZER_TEST_FILE);
 	fprintf(stderr, "-------------------------------------------------------\n\n");
+	fflush(stderr);
 }
 
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+

@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -37,26 +35,25 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "worker-threads.h"
-#include "dragonfly-io.h"
-
 #include "test.h"
 
 #define MAX_TEST6_MESSAGES 10000
 #define QUANTUM (MAX_TEST6_MESSAGES / 10)
-#define INPUT_FILE "input.txt"
+#define INPUT_FILE "input6.txt"
+
+pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"tail://input.txt<\", script=\"filter.lua\"}\n"
+	"   { tag=\"input\", uri=\"tail://input6.txt<\", script=\"filter.lua\", default_analyzer=\"test6\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"test\", script=\"analyzer.lua\" },\n"
+	"    { tag=\"test6\", script=\"analyzer.lua\" , default_analyzer=\"\", default_output=\"log6\" },\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-	"    { tag=\"log\", uri=\"ipc://output.ipc\"},\n"
+	"    { tag=\"log6\", uri=\"ipc://output6.ipc\"},\n"
 	"}\n"
 	"\n";
 
@@ -66,14 +63,14 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   local tbl = cjson_safe.decode(msg)\n"
-	"   dragonfly.analyze_event (\"test\", tbl)\n"
+	"   dragonfly.analyze_event (default_analyzer, tbl)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
 	"function setup()\n"
 	"end\n"
 	"function loop (tbl)\n"
-	"   dragonfly.output_event (\"log\", tbl.msg)\n"
+	"   dragonfly.output_event (default_output, tbl.msg)\n"
 	"end\n\n";
 /*
  * ---------------------------------------------------------------------------------------
@@ -98,11 +95,23 @@ static void write_file(const char *file_path, const char *content)
  *
  * ---------------------------------------------------------------------------------------
  */
+static void signal_shutdown6(int signum)
+{
+	dragonfly_mle_break();
+	syslog(LOG_INFO, "%s", __FUNCTION__);
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
 static void *writer_thread(void *ptr)
 {
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "writer");
 #endif
+
 	char path[PATH_MAX];
 	snprintf(path, sizeof(path), "file://%s<", INPUT_FILE);
 	DF_HANDLE *pump = dragonfly_io_open(path, DF_OUT);
@@ -110,8 +119,10 @@ static void *writer_thread(void *ptr)
 	{
 		fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
+	pthread_barrier_wait(&barrier);
+	pthread_detach(pthread_self());
 	/*
 	 * write messages walking the alphabet
 	 */
@@ -134,12 +145,12 @@ static void *writer_thread(void *ptr)
 		{
 			fprintf(stderr, "%s:%d\n", __FUNCTION__, __LINE__);
 			perror(__FUNCTION__);
-			abort();
+			exit (EXIT_FAILURE);
 		}
 		usleep(10);
 	}
 	dragonfly_io_close(pump);
-	//fprintf(stderr, "%s: %lu records written\n", __FILE__, i);
+	fprintf(stderr, "%s: %lu records written\n", __FILE__, i);
 	return (void *)NULL;
 }
 /*
@@ -149,7 +160,7 @@ static void *writer_thread(void *ptr)
  */
 void SELF_TEST6(const char *dragonfly_root)
 {
-	fprintf(stderr, "\n\n%s: tailing %d messages from input to output.ipc\n", __FUNCTION__, MAX_TEST6_MESSAGES);
+	fprintf(stderr, "\n\n%s: tailing %d messages from input to output6.ipc\n", __FUNCTION__, MAX_TEST6_MESSAGES);
 	fprintf(stderr, "-------------------------------------------------------\n");
 	/*
 	 * generate lua scripts
@@ -159,37 +170,41 @@ void SELF_TEST6(const char *dragonfly_root)
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
 
-	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
-	DF_HANDLE *input = dragonfly_io_open("ipc://output.ipc", DF_IN);
+	signal(SIGINT, signal_shutdown6);
+	pthread_barrier_init(&barrier, NULL, 2);
+	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
+
+	DF_HANDLE *input = dragonfly_io_open("ipc://output6.ipc", DF_IN);
 	if (!input)
 	{
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
 
 	pthread_t tinfo;
 	if (pthread_create(&tinfo, NULL, writer_thread, (void *)NULL) != 0)
 	{
 		perror(__FUNCTION__);
-		abort();
+		exit (EXIT_FAILURE);
 	}
-	startup_threads(dragonfly_root);
+	startup_threads();
+
 	/*
 	 * write messages walking the alphabet
 	 */
 	char buffer[4096];
 	clock_t last_time = clock();
+	pthread_barrier_wait(&barrier);
 	for (unsigned long i = 0; i < MAX_TEST6_MESSAGES; i++)
 	{
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
 		if (len < 0)
 		{
-			perror(__FUNCTION__);
-			abort();
+			break;
 		}
 		else if (len == 0)
 		{
@@ -204,12 +219,14 @@ void SELF_TEST6(const char *dragonfly_root)
 			last_time = mark_time;
 		}
 	}
+	syslog(LOG_INFO, "shutting down");
+	/* allow time to flush output */
+	sleep (2);
 
-	pthread_join(tinfo, NULL);
-	dragonfly_io_close(input);
-	sleep(1);
 	shutdown_threads();
 
+	dragonfly_io_close(input);
+	pthread_barrier_destroy(&barrier);
 	closelog();
 
 	fprintf(stderr, "%s: cleaning up files\n", __FUNCTION__);
@@ -218,9 +235,9 @@ void SELF_TEST6(const char *dragonfly_root)
 	remove(ANALYZER_TEST_FILE);
 	remove(INPUT_FILE);
 	fprintf(stderr, "-------------------------------------------------------\n\n");
+	fflush(stderr);
 }
 
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif

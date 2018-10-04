@@ -42,6 +42,7 @@
 #define DF_IN_KAFKA_TYPE 8
 #define DF_OUT_KAFKA_TYPE 9
 #define DF_CMD_SURICATA 10
+#define DF_IPFIX  11
 
 #define DF_MAX_BUFFER_LEN 2048
 
@@ -65,6 +66,12 @@ void dragonfly_io_flush(DF_HANDLE *dh);
 void dragonfly_io_close(DF_HANDLE *dh);
 void dragonfly_io_rotate(DF_HANDLE *dh);
 int dragonfly_io_isfile(DF_HANDLE *dh);
+
+void dragonfly_io_set_rundir (const char* rundir);
+const char* dragonfly_io_get_rundir ();
+
+void dragonfly_io_set_logdir (const char* rundir);
+const char* dragonfly_io_get_logdir ();
 
 #endif
 

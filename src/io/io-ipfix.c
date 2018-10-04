@@ -50,25 +50,9 @@
  */
 DF_HANDLE *ipfix_open(const char *ipfix_uri, int spec)
 {
-      // parse ipfix_uri
-
-        
-
-        DF_HANDLE *dh = (DF_HANDLE *)malloc(sizeof(DF_HANDLE));
-        if (!dh)
-        {
-                syslog(LOG_ERR, "%s: malloc failed", __FUNCTION__);
-                return NULL;
-        }
-        memset(dh, 0, sizeof(DF_HANDLE));
-
-        //dh->fd = socket_handle;
-        dh->io_type = io_type;
-        dh->path = strndup(ipfx_uri, PATH_MAX);
-#ifdef __DEBUG3__
-        syslog(LOG_INFO, "%s: %s", __FUNCTION__, path);
-#endif
-        return dh;
+        //TODO: finish this
+        syslog(LOG_ERR, "%s: currently not supported.", __FUNCTION__);
+        exit(EXIT_FAILURE);
 }
 
 /*

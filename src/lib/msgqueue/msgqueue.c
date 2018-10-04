@@ -197,20 +197,15 @@ int msgqueue_send(queue_t *q, const char *buffer, int length)
 	iov[1].iov_len = length;
 	do
 	{
-		//fprintf(stderr, "%s: write() length: - %i\n", __FUNCTION__, length);
 		n = writev(q->pipefd[1], iov, 2);
 		if (n <= 0)
 		{
 			if (n == 0)
 				return 0;
-#ifdef __DEBUG3__
-			fprintf(stderr, "%s: write() error: - %s\n", __FUNCTION__, strerror(errno));
-#endif
 			switch (errno)
 			{
 			case ETIMEDOUT:
 			case EWOULDBLOCK:
-				//fprintf(stderr, "%s: EAGAIN(%i)\n", __FUNCTION__, errno);
 				usleep(QUANTUM_SLEEP);
 				break;
 			default:

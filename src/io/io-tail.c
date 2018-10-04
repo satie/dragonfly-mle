@@ -36,11 +36,12 @@
 #include <sys/time.h>
 #include <time.h>
 #include <fcntl.h>
+#include <stdint.h>
 
 #include "dragonfly-io.h"
 #include "config.h"
 
-#define TEN_SECONDS (10)
+#define TWO_SECONDS (2)
 #define FIVE_SECONDS (5)
 
 /*
@@ -117,7 +118,7 @@ DF_HANDLE *tail_open(const char *path, int spec)
         else
         {
                 /* default log directory */
-                snprintf(file_path, PATH_MAX, "%s/%s", DRAGONFLY_LOG_DIR, path);
+                snprintf(file_path, PATH_MAX, "%s/%s", dragonfly_io_get_logdir(), path);
         }
 
         if ((spec & DF_IN) == DF_IN)
@@ -161,7 +162,6 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
 {
         time_t last_read_time = time(NULL);
         time_t current_read_time = 0;
-        int sleep_backoff = 1;
         int open_failures = 0;
         long long lastFileSize = 0;
         struct stat fdstat;
@@ -175,21 +175,26 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                         if (dh->fd < 0)
                         {
                                 open_failures++;
-                                if (open_failures > 10)
+                                if (open_failures > 5)
                                 {
                                         return -1;
                                 }
-                                sleep(1);
+                                usleep(50000);
                                 continue;
                         }
                 }
                 int n = read(dh->fd, &buffer[i], 1);
                 if (n < 0)
                 {
-                        if (n == EAGAIN)
+                        if (errno == EAGAIN)
                         {
-                                sleep(1);
+                                usleep(50000);
                                 continue;
+                        }
+                        if (errno==EINTR) 
+                        {
+                                syslog(LOG_ERR, "read was interrupted by a signal\n");
+                                return -1;
                         }
                         else
                         {
@@ -208,29 +213,24 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
 #endif
                         if (fdstat.st_size < lastFileSize)
                         {
-#ifdef __DEBUG3__
-                                fprintf(stderr, "file was truncated\n");
-#endif
+                                syslog(LOG_INFO, "%s: file size changed to %lld; possibly truncated.", __FUNCTION__, (long long)fdstat.st_size);
                                 lseek(dh->fd, 0, SEEK_SET);
                                 i = 0;
                         }
                         lastFileSize = fdstat.st_size;
-                        if (sleep_backoff < FIVE_SECONDS)
-                        {
-                                sleep_backoff++;
-                        }
                         current_read_time = time(NULL);
-                        if ((current_read_time - last_read_time) >= TEN_SECONDS)
+                        if ((current_read_time - last_read_time) >= FIVE_SECONDS)
                         {
                                 struct stat fdstat2;
                                 last_read_time = current_read_time;
-                                stat(dh->path, &fdstat2);
+                                if (stat(dh->path, &fdstat2) < 0)
+                                {
+                                        syslog(LOG_INFO, "%s: no such file.", __FUNCTION__);
+                                        return -1;
+                                }
                                 if (fdstat.st_ino != fdstat2.st_ino)
                                 {
-                                        // file was moved/renamed
-#ifdef __DEBUG3__
-                                        fprintf(stderr, "%s: file moved or renamed\n", __FUNCTION__);
-#endif
+                                        syslog(LOG_INFO, "%s: file was moved.", __FUNCTION__);
                                         close(dh->fd);
                                         char file_spec[PATH_MAX];
                                         snprintf(file_spec, sizeof(file_spec), "%s<", dh->path);
@@ -238,11 +238,11 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                                         {
                                                 return -1;
                                         }
-                                        //fprintf(stderr, "%s: file reopened\n", __FUNCTION__);
+                                        syslog(LOG_INFO, "%s: reopened file %s.", __FUNCTION__, file_spec);
                                         i = 0;
                                 }
                         }
-                        sleep(sleep_backoff);
+                        sleep(1);
                 }
                 else if (buffer[i] == '\n')
                 {
@@ -282,10 +282,7 @@ int tail_read_line(DF_HANDLE *dh, char *buffer, int max)
  */
 void tail_close(DF_HANDLE *dh)
 {
-#ifdef __DEBUG3__
-        fprintf(stderr, "%s: line %d\n", __FUNCTION__, __LINE__);
-#endif
-        if (dh)
+        if (dh && dh->fd > 0)
         {
                 close(dh->fd);
                 dh->fd = -1;

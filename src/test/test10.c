@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -37,9 +35,6 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "worker-threads.h"
-#include "dragonfly-io.h"
-
 #include "test.h"
 
 #define MAX_TEST10_MESSAGES 1000
@@ -47,15 +42,15 @@
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\"}\n"
+	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"test10\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"test\", script=\"analyzer.lua\" },\n"
+	"    { tag=\"test10\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"log10\" },\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-	"    { tag=\"log\", uri=\"file:///dev/null\"},\n"
+	"    { tag=\"log10\", uri=\"file:///dev/null\"},\n"
 	"}\n"
 	"\n";
 
@@ -65,7 +60,7 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   local tbl = cjson.decode(msg)\n"
-	"   dragonfly.analyze_event(\"test\", tbl)\n"
+	"   dragonfly.analyze_event(default_analyzer, tbl)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
@@ -116,7 +111,8 @@ void SELF_TEST10(const char *dragonfly_root)
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
-	startup_threads(dragonfly_root);
+	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
+	startup_threads();
 
 	sleep(1);
 	DF_HANDLE *pump = dragonfly_io_open("ipc://input.ipc", DF_OUT);
@@ -170,9 +166,9 @@ void SELF_TEST10(const char *dragonfly_root)
 	remove(FILTER_TEST_FILE);
 	remove(ANALYZER_TEST_FILE);
 	fprintf(stderr, "-------------------------------------------------------\n\n");
+	fflush(stderr);
 }
 
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif

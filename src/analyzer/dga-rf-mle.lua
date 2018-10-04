@@ -167,7 +167,7 @@ function setup()
 	assert(conn:command("PING") == hiredis.status.PONG)
 	print (">>>>>>>> DGA (Random Forest) Analyzer")
 	numTrees = 5
-	mlpath = "/usr/local/dragonfly-mle/analyzer/dga/dga-rf"
+	mlpath = "/usr/local/dragonfly-mle/analyzer/dga-rf"
 	
 	-- Random Forest Model
 	print ("Loading Random Forest model from file......")

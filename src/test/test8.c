@@ -21,7 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
 
 #include <stdio.h>
 #include <stdint.h>
@@ -37,22 +36,19 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "worker-threads.h"
-#include "dragonfly-io.h"
-
 #include "test.h"
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\"}\n"
+	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"test8\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"test\", script=\"analyzer.lua\" },\n"
+	"    { tag=\"test8\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"log8\" },\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-	"    { tag=\"log\", uri=\"file://test8.log\"},\n"
+	"    { tag=\"log8\", uri=\"file://test8.log\"},\n"
 	"}\n"
 	"\n";
 
@@ -62,7 +58,7 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   local tbl = cjson_safe.decode(msg)\n"
-	"   dragonfly.analyze_event (\"test\", tbl)\n"
+	"   dragonfly.analyze_event (default_analyzer, tbl)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
@@ -96,7 +92,7 @@ static const char *ANALYZER_LUA =
 	"	end\n"
 	"end\n"
 	"function loop (tbl)\n"
-	"    dragonfly.output_event (\"log\", tbl.msg)\n"
+	"    dragonfly.output_event (default_output, tbl.msg)\n"
 	"end\n";
 
 /*
@@ -140,7 +136,8 @@ void SELF_TEST8(const char *dragonfly_root)
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
-	startup_threads(dragonfly_root);
+	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
+	startup_threads();
 
 	sleep(1);
 	DF_HANDLE *pump = dragonfly_io_open("ipc://input.ipc", DF_OUT);
@@ -162,13 +159,11 @@ void SELF_TEST8(const char *dragonfly_root)
 		mod++;
 	}
 	msg[sizeof(msg) - 1] = '\0';
-	snprintf(buffer, sizeof(buffer), "{ \"id\": %lu, \"msg\":\"%s\" }", (unsigned long) 1, msg);
+	snprintf(buffer, sizeof(buffer), "{ \"id\": %lu, \"msg\":\"%s\" }", (unsigned long)1, msg);
 	dragonfly_io_write(pump, buffer);
-
 	dragonfly_io_close(pump);
-	sleep(1);
+	sleep (1);
 	shutdown_threads();
-	
 
 	closelog();
 
@@ -177,9 +172,10 @@ void SELF_TEST8(const char *dragonfly_root)
 	remove(FILTER_TEST_FILE);
 	remove(ANALYZER_TEST_FILE);
 	fprintf(stderr, "-------------------------------------------------------\n\n");
+	fflush(stderr);
 }
 
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+
