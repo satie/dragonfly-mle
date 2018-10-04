@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -41,7 +39,7 @@
 
 #define MAX_TEST7_MESSAGES 100000
 #define QUANTUM (MAX_TEST7_MESSAGES / 10)
-extern uint64_t g_running;
+
 pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
@@ -101,7 +99,7 @@ static void write_file(const char *file_path, const char *content)
  */
 static void signal_shutdown7(int signum)
 {
-	g_running = 0;
+	dragonfly_mle_break();
 	syslog(LOG_INFO, "%s", __FUNCTION__);
 }
 
@@ -222,7 +220,7 @@ void SELF_TEST7(const char *dragonfly_root)
 	clock_t last_time = clock();
 
 	pthread_barrier_wait(&barrier);
-	while (g_running)
+	while (dragonfly_mle_running())
 	{
 		int len = dragonfly_io_read(input, buffer, (sizeof(buffer) - 1));
 		if (len < 0)
@@ -261,4 +259,3 @@ void SELF_TEST7(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif

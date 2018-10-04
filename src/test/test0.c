@@ -21,7 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
 
 #define _GNU_SOURCE
 
@@ -141,4 +140,4 @@ void SELF_TEST0(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+

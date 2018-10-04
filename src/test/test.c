@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -41,9 +39,8 @@
 
 #include "dragonfly-lib.h"
 #include "dragonfly-io.h"
-extern uint64_t g_running;
 
-#define WAIT_INTERVAL 3
+#define WAIT_INTERVAL 1
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -121,4 +118,4 @@ void dragonfly_mle_test(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+

@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -222,7 +220,6 @@ void SELF_TEST6(const char *dragonfly_root)
 		}
 	}
 	shutdown_threads();
-	kill(getpid(), SIGINT);
 	syslog(LOG_INFO, "shutting down");
 	sleep(2);
 	dragonfly_io_close(input);
@@ -241,4 +238,3 @@ void SELF_TEST6(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif

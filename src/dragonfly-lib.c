@@ -557,9 +557,12 @@ static void *lua_input_thread(void *ptr)
     luaopen_dragonfly_functions(L);
 
     /* set the "default" next hop for this analyzer */
-    lua_pushstring(L, input->default_analyzer);
-    //fprintf (stderr,"%s:  default_analyzer: %s\n", __FUNCTION__, input->default_analyzer);
-    lua_setglobal(L, "default_analyzer");
+    if (input->default_analyzer && strnlen (input->default_analyzer, 32) > 0)
+    {
+        lua_pushstring(L, input->default_analyzer);
+        fprintf (stderr,"%s:  default_analyzer: %s\n", __FUNCTION__, input->default_analyzer);
+        lua_setglobal(L, "default_analyzer");
+    }
 
     /*
      * Load the lua-cmsgpack library:
@@ -669,7 +672,8 @@ void lua_output_loop(OUTPUT_CONFIG *output)
                     fprintf(stderr, "%s: output error\n", __FUNCTION__);
                     return;
                 }
-                if (g_stats) g_stats->output++;
+                if (g_stats)
+                    g_stats->output++;
             }
         }
     }
@@ -754,7 +758,8 @@ void lua_analyzer_loop(lua_State *L, ANALYZER_CONFIG *analyzer)
             }
             lua_pop(L, 1);
 
-            if (g_stats) g_stats->analysis++;
+            if (g_stats)
+                g_stats->analysis++;
         }
     }
 }
@@ -832,12 +837,18 @@ static void *lua_analyzer_thread(void *ptr)
     }
 
     /* set the "default" next hop for this analyzer */
-    lua_pushstring(L, analyzer->default_analyzer);
-    lua_setglobal(L, "default_analyzer");
+    if (analyzer->default_analyzer  && strnlen (analyzer->default_analyzer, 32) > 0)
+    {
+        lua_pushstring(L, analyzer->default_analyzer);
+        lua_setglobal(L, "default_analyzer");
+    }
 
     /* set the "default" output */
-    lua_pushstring(L, analyzer->default_output);
-    lua_setglobal(L, "default_output");
+    if (analyzer->default_output  && strnlen (analyzer->default_output, 32))
+    {
+        lua_pushstring(L, analyzer->default_output);
+        lua_setglobal(L, "default_output");
+    }
 
     /*
      * Initialize responders commands;
@@ -1458,6 +1469,16 @@ void dragonfly_mle_run(const char *rootdir, const char *logdir, const char *rund
 void dragonfly_mle_break()
 {
     g_running = 0;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+uint64_t dragonfly_mle_running()
+{
+    return g_running;
 }
 
 /*

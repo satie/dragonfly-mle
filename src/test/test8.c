@@ -21,7 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
 
 #include <stdio.h>
 #include <stdint.h>
@@ -179,4 +178,4 @@ void SELF_TEST8(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+

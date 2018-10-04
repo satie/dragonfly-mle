@@ -21,8 +21,6 @@
  *
  */
 
-#ifdef RUN_UNIT_TESTS
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -46,7 +44,7 @@ pthread_barrier_t barrier;
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input5.ipc\", script=\"filter.lua\", default_analyzer=\"test5\"}\n"
+	"   { tag=\"input\", uri=\"ipc://input5.ipc\", script=\"filter.lua\", default_analyzer=\"\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
@@ -64,7 +62,7 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   local tbl = cjson_safe.decode(msg)\n"
-	"   dragonfly.analyze_event (default_analyzer, tbl)\n"
+	"   dragonfly.analyze_event (\"test5\", tbl)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
@@ -72,7 +70,7 @@ static const char *ANALYZER_LUA =
 	"end\n"
 	"function loop (tbl)\n"
 	"  -- print (tbl.msg)\n"
-	"   dragonfly.output_event (default_output, tbl.msg)\n"
+	"   dragonfly.output_event (\"log5\", tbl.msg)\n"
 	"end\n\n";
 /*
  * ---------------------------------------------------------------------------------------
@@ -220,4 +218,4 @@ void SELF_TEST5(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-#endif
+

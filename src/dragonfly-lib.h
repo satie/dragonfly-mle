@@ -25,10 +25,10 @@
 #define _ANALYZER_THREADS_
 
 #include "config.h"
-#include "test.h"
 
 void dragonfly_mle_run (const char *rootdir, const char *logdir, const char *rundir);
 void dragonfly_mle_break();
+uint64_t dragonfly_mle_running();
 
 void shutdown_threads();
 void startup_threads();

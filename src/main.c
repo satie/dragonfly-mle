@@ -49,6 +49,7 @@ int g_chroot = 0;
 int g_verbose = 0;
 int g_drop_priv = 0;
 
+
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
 {
 	int option = 0;
 	char *dragonfly_log = NULL;
-	char *dragonfly_root = NULL;
+	char *dragonfly_root = DRAGONFLY_ROOT_DIR;
 
 	while ((option = getopt(argc, argv, "cflpr:v")) != -1)
 	{
