@@ -276,9 +276,9 @@ int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
                 }
                 else
                 {
+                    fprintf(stderr, "script: %s is missing.\n", input_list[i].script);
                     input_list[i].script = NULL;
-                    fprintf(stderr, "script: %s (invalid)\n", input_list[i].script);
-                    abort();
+                    exit(EXIT_FAILURE);
                 }
             }
             break;
@@ -393,9 +393,10 @@ int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max
                 }
                 else
                 {
+
+                    fprintf(stderr, "script: %s is missing\n", analyzer_list[i - 1].script);
                     analyzer_list[i - 1].script = NULL;
-                    fprintf(stderr, "script: %s (invalid)\n", analyzer_list[i - 1].script);
-                    abort();
+                    exit(EXIT_FAILURE);
                 }
             }
             break;
