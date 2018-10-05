@@ -67,8 +67,8 @@ uint64_t volatile g_running = 1;
 uint64_t volatile g_initialized = 0;
 
 static char g_root_dir[PATH_MAX];
-static char g_run_dir[PATH_MAX];
 static char g_log_dir[PATH_MAX];
+static char g_filter_dir[PATH_MAX];
 static char g_analyzer_dir[PATH_MAX];
 static char g_config_file[PATH_MAX];
 
@@ -969,61 +969,43 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     {
         if (mkdir(g_log_dir, 0755) && errno != EEXIST)
         {
-            fprintf(stderr, "mkdir (%s) error - %s\n", g_log_dir, strerror(errno));
-            syslog(LOG_WARNING, "mkdir (%s) error - %s\n", g_log_dir, strerror(errno));
+            fprintf(stderr, "mkdir (%s) - %s\n", g_log_dir, strerror(errno));
+            syslog(LOG_ERR, "mkdir (%s) - %s\n", g_log_dir, strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
 
-    // check run dir
-    if (!rundir)
+    snprintf(g_config_file, PATH_MAX, "%s/%s", g_root_dir, CONFIG_FILE);
+    if ((lstat(g_config_file, &sb) < 0) || !S_ISREG(sb.st_mode))
     {
-        strncpy(g_run_dir, DRAGONFLY_RUN_DIR, PATH_MAX);
-    }
-    else
-    {
-        strncpy(g_run_dir, rundir, PATH_MAX);
-    }
-    dragonfly_io_set_rundir(g_run_dir);
-
-    /*
-	 * Make sure run directory exists
-	 */
-    if ((lstat(g_run_dir, &sb) < 0) || !S_ISCHR(sb.st_mode))
-    {
-        if (mkdir(g_run_dir, 0755) && errno != EEXIST)
-        {
-            fprintf(stderr, "mkdir (%s) error - %s\n", g_run_dir, strerror(errno));
-            syslog(LOG_WARNING, "mkdir (%s) error - %s\n", g_run_dir, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
+        fprintf(stderr, "config file %s does not exist.\n", g_config_file);
+        syslog(LOG_ERR, "config file %s does not exist.\n", g_config_file);
+        exit(EXIT_FAILURE);
     }
 
     snprintf(g_analyzer_dir, PATH_MAX, "%s/%s", g_root_dir, ANALYZER_DIR);
-
-#if 0
     /*
 	 * Make sure analyzer directory exists
 	 */
-    if ((lstat(g_analyzer_dir, &sb) < 0) || !S_ISCHR(sb.st_mode))
+    if ((lstat(g_analyzer_dir, &sb) < 0) || !S_ISDIR(sb.st_mode))
     {
-        fprintf(stderr, "Analyzer directory %s does not exist.\n", g_analyzer_dir);
-        syslog(LOG_WARNING, "Analyzer directory %s does not exist.\n", g_analyzer_dir);
+        fprintf(stderr, "analyzer directory %s does not exist.\n", g_analyzer_dir);
+        syslog(LOG_ERR, "analyzer directory %s does not exist.\n", g_analyzer_dir);
         exit(EXIT_FAILURE);
     }
-#endif
 
-    snprintf(g_config_file, PATH_MAX, "%s/%s", g_root_dir, CONFIG_FILE);
-
-    if ((lstat(g_config_file, &sb) < 0) || !S_ISREG(sb.st_mode))
+    snprintf(g_filter_dir, PATH_MAX, "%s/%s", g_root_dir, FILTER_DIR);
+    /*
+	 * Make sure filter directory exists
+	 */
+    if ((lstat(g_filter_dir, &sb) < 0) || !S_ISDIR(sb.st_mode))
     {
-        fprintf(stderr, "%s does not exist.\n", g_config_file);
-        syslog(LOG_WARNING, "%s does noet exist.\n", g_config_file);
+        fprintf(stderr, "filter directory %s does not exist.\n", g_filter_dir);
+        syslog(LOG_ERR, "filter directory %s does not exist.\n", g_filter_dir);
         exit(EXIT_FAILURE);
     }
 
     syslog(LOG_INFO, "log dir: %s\n", g_log_dir);
-    syslog(LOG_INFO, "run dir: %s\n", g_run_dir);
     syslog(LOG_INFO, "analyzer dir: %s\n", g_analyzer_dir);
     syslog(LOG_INFO, "config file: %s\n", g_config_file);
 
@@ -1114,16 +1096,6 @@ static void process_drop_privilege()
 void launch_analyzer_process(const char *dragonfly_analyzer_root)
 {
     int n = 0;
-
-    /*
-     * Make sure analyzer is operating in default root directory
-     */
-    if (chdir(g_root_dir) != 0)
-    {
-        syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
-        exit(EXIT_FAILURE);
-    }
-    syslog(LOG_INFO, "root directory: %s\n", g_root_dir);
 
     for (int i = 0; i < MAX_ANALYZER_STREAMS; i++)
     {
@@ -1317,11 +1289,22 @@ void startup_threads()
         exit(EXIT_FAILURE);
     }
     g_running = 1;
+    /*
+     * Make sure analyzer is operating in default root directory
+     */
+    if (chdir(g_root_dir) != 0)
+    {
+        syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
+        exit(EXIT_FAILURE);
+    }
+    syslog(LOG_INFO, "root directory: %s\n", g_root_dir);
+
     create_message_queues();
     /*
      * Initialize the timer list BEFORE forking
      */
     memset(&g_timer_list, 0, sizeof(g_timer_list));
+
     /* 
      * add internal logger for logging 
      */
@@ -1433,15 +1416,7 @@ static void launch_lua_threads()
 {
 
     startup_threads();
-    /*
-     * Move I/O process to the default run directory
-     */
-    if (chdir(g_run_dir) != 0)
-    {
-        syslog(LOG_ERR, "unable to chdir() to  %s", g_run_dir);
-        exit(EXIT_FAILURE);
-    }
-    syslog(LOG_INFO, "I/O dir: %s\n", g_run_dir);
+
 
     while (g_running)
     {
