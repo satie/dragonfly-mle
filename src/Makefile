@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------
 CC = $(BSD_CC)
 CFLAGS = $(BSD_CFLAGS)
-GIT_VERSION != git describe --abbrev=4 --dirty --always --tags
+GIT_VERSION != git describe --abbrev=4 --always --tags
 
 # ------------------------------------------------------------------
 # 
