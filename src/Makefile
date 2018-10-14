@@ -1,11 +1,13 @@
 # ------------------------------------------------------------------
 # dragonfly build
 # ------------------------------------------------------------------
-GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
-
 CC = $(LINUX_CC)
 CFLAGS = $(LINUX_CFLAGS)
+GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
+# ------------------------------------------------------------------
+# 
+# ------------------------------------------------------------------
 LINUX_CC = gcc
 LINUX_CFLAGS = -O2 -Wall -march=native -Werror
 BSD_CC = cc
