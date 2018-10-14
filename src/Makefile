@@ -1,15 +1,15 @@
 # ------------------------------------------------------------------
 # dragonfly build
 # ------------------------------------------------------------------
+GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
 
-CC = $(BSD_CC)
-CFLAGS = $(BSD_CFLAGS)
+CC = $(LINUX_CC)
+CFLAGS = $(LINUX_CFLAGS)
 
 LINUX_CC = gcc
 LINUX_CFLAGS = -O2 -Wall -march=native -Werror
 BSD_CC = cc
 BSD_CFLAGS = -O2 -Wall -march=native -Werror -Wno-error=tautological-pointer-compare
-
 
 INCLUDES = -I. -I/usr/local/include -I./io -I./test -I./lib/msgqueue -I./resp \
 	   -I./lib/lua-cjson -I./lib/lua-hiredis -I./lib/lua-cmsgpack
@@ -17,8 +17,8 @@ INCLUDES = -I. -I/usr/local/include -I./io -I./test -I./lib/msgqueue -I./resp \
 LIBS = -lpthread -lluajit-5.1 -lhiredis -lm -lcurl -lrt -lz
 LFLAGS = -L. -L/usr/local/lib
 
-#DFLAGS =-D__DEBUG__ 
-DFLAGS =
+
+DFLAGS = -DMLE_VERSION=\"$(GIT_VERSION)\"
 
 RM=/bin/rm
 DRAGONFLY_ROOT=/usr/local/dragonfly-mle
@@ -74,12 +74,14 @@ test: $(TEST_BIN)
 # ------------------------------------------------------------------
 
 $(MAIN): $(MAIN_OBJS)
+	echo $(MLE_VERSION)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(MAIN_OBJS) $(DFLAGS) $(LFLAGS) $(LIBS) 
 
 # ------------------------------------------------------------------
 # test build
 # ------------------------------------------------------------------
 $(TEST_BIN): $(TEST_OBJS) 
+	echo $(MLE_VERSION)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(TEST_BIN) $(TEST_OBJS) $(DFLAGS) $(LFLAGS) $(LIBS)
 #	valgrind --leak-check=yes ./$(TEST_BIN) -r /tmp
 
@@ -108,7 +110,7 @@ target:
 # misc
 # ------------------------------------------------------------------
 .c.o:
-	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) $(INCLUDES) -c $<  -o $@
 
 .PHONY: test clean
 

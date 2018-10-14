@@ -120,15 +120,14 @@ static int load_redis_modules(lua_State *L, redisContext *pContext)
                 redisReply *reply = redisCommand(pContext, "MODULE LOAD %s", path);
                 if (reply && (reply->type != REDIS_REPLY_ERROR))
                 {
-#ifdef __DEBUG3__
-                    fprintf(stderr, "%s: %s\n", __FUNCTION__, path);
-#endif
                     syslog(LOG_INFO, "%s: %s\n", __FUNCTION__, path);
                 }
                 else
                 {
                     fprintf(stderr, "%s: failed to load module %s\n", __FUNCTION__, path);
                     syslog(LOG_ERR, "%s: failed to load module %s", __FUNCTION__, path);
+                    freeReplyObject(reply);
+                    return -1;
                     /* code */
                 }
                 freeReplyObject(reply);
@@ -232,7 +231,8 @@ int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
             lua_getfield(L, -1, fields[field_index].key);
             if (lua_isnil(L, -1))
             {
-                fprintf(stderr, "\nERROR: %s() failed due to invalid or missing field \"%s\".\n", __FUNCTION__, fields[field_index].key);
+                fprintf(stderr, "\%s: failed due to invalid or missing field \"%s\".\n", __FUNCTION__, fields[field_index].key);
+                exit(EXIT_FAILURE);
             }
             luaL_checktype(L, -1, fields[field_index].type);
             switch (field_index)
@@ -258,7 +258,7 @@ int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
                 struct stat sb;
                 const char *path = lua_tostring(L, -1);
                 char script_path[PATH_MAX];
-                if (*path != '/')
+                if (path[0] != '/')
                 {
                     snprintf(script_path, PATH_MAX, "%s/%s", FILTER_DIR, path);
                 }
@@ -276,8 +276,7 @@ int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
                 }
                 else
                 {
-                    fprintf(stderr, "script: %s is missing.\n", input_list[i].script);
-                    input_list[i].script = NULL;
+                    fprintf(stderr, "script: %s is missing.\n", script_path);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -355,7 +354,8 @@ int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max
             lua_getfield(L, -1, fields[field_index].key);
             if (lua_isnil(L, -1))
             {
-                fprintf(stderr, "\nERROR: %s() failed due to invalid or missing field \"%s\".\n", __FUNCTION__, fields[field_index].key);
+                fprintf(stderr, "\n%s: failed due to invalid or missing field \"%s\".\n", __FUNCTION__, fields[field_index].key);
+                exit(EXIT_FAILURE);
             }
             luaL_checktype(L, -1, fields[field_index].type);
             switch (field_index)
@@ -394,8 +394,7 @@ int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max
                 else
                 {
 
-                    fprintf(stderr, "script: %s is missing\n", analyzer_list[i - 1].script);
-                    analyzer_list[i - 1].script = NULL;
+                    fprintf(stderr, "%s: script %s is missing\n", __FUNCTION__, lua_analyzer);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -473,6 +472,7 @@ int load_outputs_config(lua_State *L, OUTPUT_CONFIG output_list[], int max)
     output_list[DRAGONFLY_LOG_INDEX].tag = strdup(DRAGONFLY_LOG_TAG);
     output_list[DRAGONFLY_LOG_INDEX].uri = strdup(buffer);
     number_of_outputs++;
+    
     /* setup internal default stats output log */
     snprintf(buffer, PATH_MAX, "file://%s", DRAGONFLY_STATS_LOG);
     output_list[DRAGONFLY_STATS_INDEX].tag = strdup(DRAGONFLY_STATS_TAG);

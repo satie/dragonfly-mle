@@ -28,7 +28,7 @@
 #include "msgqueue.h"
 
 #define DRAGONFLY_ROOT "DRAGONFLY_ROOT"
-#define RUN_DIR "run"
+//#define RUN_DIR "run"
 #define LOG_DIR "log"
 #define FILTER_DIR "filter"
 #define ANALYZER_DIR "analyzer"

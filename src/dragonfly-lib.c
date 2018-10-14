@@ -99,6 +99,9 @@ static pthread_mutex_t g_timer_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static MLE_TIMER g_timer_list[MAX_ANALYZER_STREAMS];
 
+#define VERBOSE_PRINT(x) \
+    if (g_verbose)       \
+    fprintf
 int timer_event(lua_State *L);
 int analyze_event(lua_State *L);
 int output_event(lua_State *L);
@@ -142,6 +145,22 @@ void signal_abort(int signum)
     g_running = 0;
     syslog(LOG_INFO, "%s", __FUNCTION__);
 }
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+void verbose_print(const char *format, ...)
+{
+    if (g_verbose)
+    {
+        va_list args;
+        va_start(args, format);
+        vprintf(format, args);
+        va_end(args);
+    }
+}
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -168,7 +187,7 @@ void signal_term(int signum)
     if (g_analyzer_pid > 0)
     {
         // tell child process to shutdown
-        kill(g_analyzer_pid, SIGTERM);
+        kill(g_analyzer_pid, SIGINT);
     }
 }
 
@@ -1005,9 +1024,18 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         exit(EXIT_FAILURE);
     }
 
+    syslog(LOG_INFO, "version: %s\n", MLE_VERSION);
+    if (g_verbose)
+        fprintf(stderr, "version: %s\n", g_log_dir);
     syslog(LOG_INFO, "log dir: %s\n", g_log_dir);
+    if (g_verbose)
+        fprintf(stderr, "log dir: %s\n", g_log_dir);
     syslog(LOG_INFO, "analyzer dir: %s\n", g_analyzer_dir);
-    syslog(LOG_INFO, "config file: %s\n", g_config_file);
+    fprintf(stderr, "analyzer dir: %s\n", g_analyzer_dir);
+    if (g_verbose)
+        syslog(LOG_INFO, "config file: %s\n", g_config_file);
+    if (g_verbose)
+        fprintf(stderr, "config file: %s\n", g_config_file);
 
     lua_State *L = luaL_newstate();
     /*
@@ -1297,6 +1325,7 @@ void startup_threads()
         syslog(LOG_ERR, "unable to chdir() to  %s", g_root_dir);
         exit(EXIT_FAILURE);
     }
+    fprintf(stderr, "root directory: %s\n", g_root_dir);
     syslog(LOG_INFO, "root directory: %s\n", g_root_dir);
 
     create_message_queues();
@@ -1416,7 +1445,6 @@ static void launch_lua_threads()
 {
 
     startup_threads();
-
 
     while (g_running)
     {

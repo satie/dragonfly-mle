@@ -56,9 +56,20 @@ int g_drop_priv = 0;
  * ---------------------------------------------------------------------------------------
  */
 
+void print_version()
+{
+	printf("\nDragonFly Machine Learning Engine (MLE)\nVersion: %s\n\n", MLE_VERSION);
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+
 void print_usage()
 {
-	printf("Usage: dragonfly [-c -p -r <root dir> -l <log dir>] -v\n");
+	printf("Usage: dragonfly [-c -p -r <root dir> -l <log dir>] -v -V\n");
 }
 
 
@@ -74,7 +85,7 @@ int main(int argc, char **argv)
 	char *dragonfly_log = NULL;
 	char *dragonfly_root = DRAGONFLY_ROOT_DIR;
 
-	while ((option = getopt(argc, argv, "cflpr:v")) != -1)
+	while ((option = getopt(argc, argv, "cflpr:vV")) != -1)
 	{
 		switch (option)
 		{
@@ -103,9 +114,15 @@ int main(int argc, char **argv)
 			g_verbose = 1;
 			break;
 
+			/* version */
+		case 'V':
+			print_version ();
+			exit(EXIT_SUCCESS);
+			break;
+
 		default:
 			print_usage();
-			exit(EXIT_FAILURE);
+			exit(EXIT_SUCCESS);
 		}
 	}
 

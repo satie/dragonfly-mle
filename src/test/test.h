@@ -28,9 +28,10 @@
 #include "dragonfly-lib.h"
 #include "dragonfly-io.h"
 
-#define ANALYZER_TEST_FILE "./analyzer/analyzer.lua"
-#define FILTER_TEST_FILE "./filter/filter.lua"
-#define CONFIG_TEST_FILE "./config/config.lua"
+
+#define ANALYZER_TEST_FILE "analyzer/analyzer.lua"
+#define FILTER_TEST_FILE "filter/filter.lua"
+#define CONFIG_TEST_FILE "config/config.lua"
 
 void dragonfly_mle_test(const char *dragonfly_root);
 void SELF_TEST0(const char *dragonfly_root);
