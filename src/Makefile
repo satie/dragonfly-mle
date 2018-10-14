@@ -1,9 +1,9 @@
 # ------------------------------------------------------------------
 # dragonfly build
 # ------------------------------------------------------------------
-CC = $(LINUX_CC)
-CFLAGS = $(LINUX_CFLAGS)
-GIT_VERSION = $(shell git describe --abbrev=4 --dirty --always --tags)
+CC = $(BSD_CC)
+CFLAGS = $(BSD_CFLAGS)
+GIT_VERSION != git describe --abbrev=4 --dirty --always --tags
 
 # ------------------------------------------------------------------
 # 
