@@ -108,9 +108,9 @@ typedef struct _RESPONDER_CONFIG_
 #include <luajit-2.0/lualib.h>
 #include <luajit-2.0/luajit.h>
 
-int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max);
+int load_analyzers_config(lua_State *L, const char* analyzer_dir, ANALYZER_CONFIG analyzer_list[], int max);
 void unload_analyzers_config(ANALYZER_CONFIG analyzer_list[], int max);
-int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max);
+int load_inputs_config(lua_State *L, const char* filter_dir, INPUT_CONFIG input_list[], int max);
 void unload_inputs_config(INPUT_CONFIG input_list[], int max);
 int load_outputs_config(lua_State *L, OUTPUT_CONFIG output_list[], int max);
 void unload_outputs_config(OUTPUT_CONFIG output_list[], int max);

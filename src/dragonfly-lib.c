@@ -1071,7 +1071,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         syslog(LOG_ERR, "load_redis failed");
         exit(EXIT_FAILURE);
     }
-    if ((g_num_analyzer_threads = load_analyzers_config(L, g_analyzer_list, MAX_ANALYZER_STREAMS)) <= 0)
+    if ((g_num_analyzer_threads = load_analyzers_config(L, g_analyzer_dir, g_analyzer_list, MAX_ANALYZER_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_analyzer_config failed");
         exit(EXIT_FAILURE);
@@ -1081,7 +1081,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         syslog(LOG_ERR, "load_output_config failed");
         exit(EXIT_FAILURE);
     }
-    if ((g_num_input_threads = load_inputs_config(L, g_input_list, MAX_INPUT_STREAMS)) <= 0)
+    if ((g_num_input_threads = load_inputs_config(L, g_filter_dir, g_input_list, MAX_INPUT_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_input_config failed");
         exit(EXIT_FAILURE);

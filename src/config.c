@@ -196,7 +196,7 @@ void unload_inputs_config(INPUT_CONFIG input_list[], int max)
  *
  * ---------------------------------------------------------------------------------------
  */
-int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
+int load_inputs_config(lua_State *L,  const char* filter_dir, INPUT_CONFIG input_list[], int max)
 {
     int number_of_inputs = 0;
     static struct
@@ -260,7 +260,7 @@ int load_inputs_config(lua_State *L, INPUT_CONFIG input_list[], int max)
                 char script_path[PATH_MAX];
                 if (path[0] != '/')
                 {
-                    snprintf(script_path, PATH_MAX, "%s/%s", FILTER_DIR, path);
+                    snprintf(script_path, PATH_MAX, "%s/%s", filter_dir, path);
                 }
                 else
                 {
@@ -319,7 +319,7 @@ void unload_analyzers_config(ANALYZER_CONFIG analyzer_list[], int max)
  *
  * ---------------------------------------------------------------------------------------
  */
-int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max)
+int load_analyzers_config(lua_State *L, const char* analyzer_dir, ANALYZER_CONFIG analyzer_list[], int max)
 {
     int number_of_analyzers = 0;
     static struct
@@ -377,7 +377,7 @@ int load_analyzers_config(lua_State *L, ANALYZER_CONFIG analyzer_list[], int max
                 char lua_analyzer[PATH_MAX];
                 if (*script_path != '/')
                 {
-                    snprintf(lua_analyzer, PATH_MAX, "%s/%s", ANALYZER_DIR, script_path);
+                    snprintf(lua_analyzer, PATH_MAX, "%s/%s", analyzer_dir, script_path);
                 }
                 else
                 {
