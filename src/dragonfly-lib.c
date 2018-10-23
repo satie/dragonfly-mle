@@ -1069,7 +1069,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     if (load_redis(L, g_redis_host, g_redis_port) < 0)
     {
         syslog(LOG_ERR, "load_redis failed");
-        exit(EXIT_FAILURE);
+        ///exit(EXIT_FAILURE);
     }
     if ((g_num_analyzer_threads = load_analyzers_config(L, g_analyzer_dir, g_analyzer_list, MAX_ANALYZER_STREAMS)) <= 0)
     {
