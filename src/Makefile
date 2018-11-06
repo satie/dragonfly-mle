@@ -16,7 +16,7 @@ BSD_CFLAGS = -O2 -Wall -march=native -Werror -Wno-error=tautological-pointer-com
 INCLUDES = -I. -I/usr/local/include -I./io -I./test -I./lib/msgqueue -I./resp \
 	   -I./lib/lua-cjson -I./lib/lua-hiredis -I./lib/lua-cmsgpack
 
-LIBS = -lpthread -lluajit-5.1 -lhiredis -lm -lcurl -lrt -lz
+LIBS = -lpthread -lluajit-5.1 -lhiredis -lm -lcurl -lrt -lz -lmicrohttpd
 LFLAGS = -L. -L/usr/local/lib
 
 
@@ -35,7 +35,7 @@ UNIT_SRC = unit-test.c
 # library ore files
 # -----------------------------------------------------------------
 SRCS0 = dragonfly-lib.c dragonfly-io.c dragonfly-cmds.c config.c \
-	   responder.c
+	webservice.c responder.c
 
 # ------------------------------------------------------------------
 # I/O modules

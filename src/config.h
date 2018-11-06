@@ -28,12 +28,14 @@
 #include "msgqueue.h"
 
 #define DRAGONFLY_ROOT "DRAGONFLY_ROOT"
-//#define RUN_DIR "run"
 #define LOG_DIR "log"
 #define FILTER_DIR "filter"
 #define ANALYZER_DIR "analyzer"
 #define CONFIG_DIR "config"
 #define CONFIG_FILE "config/config.lua"
+
+#define WEB_DIR "/www/"
+#define WEB_PORT (7070)
 
 #define USER_NOBODY "nobody"
 

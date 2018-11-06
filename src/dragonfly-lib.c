@@ -55,6 +55,7 @@
 #include "dragonfly-lib.h"
 #include "dragonfly-cmds.h"
 #include "dragonfly-io.h"
+#include "webservice.h"
 #include "responder.h"
 #include "config.h"
 #include "param.h"
@@ -1168,10 +1169,15 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         syslog(LOG_INFO, "chroot: %s\n", dragonfly_analyzer_root);
     }
 
+    /* start the static web interface to serve up analyzer explaination */
+    void *web_ctx = start_web_server (WEB_DIR, WEB_PORT);
+
     while (g_running)
     {
         sleep(1);
     }
+
+    stop_web_server (web_ctx);
 
     n = 0;
     while (g_analyzer_thread[n])
@@ -1369,6 +1375,7 @@ void startup_threads()
     }
     else if (g_analyzer_pid == 0)
     {
+
         // child launch_analyzer_process
         launch_analyzer_process(g_analyzer_dir);
     }
