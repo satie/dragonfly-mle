@@ -1173,11 +1173,11 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     {
         struct stat sb;
         char json_file[PATH_MAX];
-        snprintf(json_file, sizeof(json_file) - 1, "%s%s.json", WEB_DIR, g_analyzer_list[i].tag);
+        snprintf(json_file, sizeof(json_file) - 1y, "%s%s.json", WEB_DIR, g_analyzer_list[i].tag);
 
         if (lstat(json_file, &sb) < 0)
         {
-            syslog(LOG_ERR, "JSON explainability file %s does not exist.\n", json_file);
+            syslog(LOG_ERR, "analyzer description file %s does not exist.\n", json_file);
         }
     }
 
