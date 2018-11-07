@@ -1169,15 +1169,27 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         syslog(LOG_INFO, "chroot: %s\n", dragonfly_analyzer_root);
     }
 
+    for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
+    {
+        struct stat sb;
+        char json_file[PATH_MAX];
+        snprintf(json_file, sizeof(json_file) - 1, "%s%s.json", WEB_DIR, g_analyzer_list[i].tag);
+
+        if (lstat(json_file, &sb) < 0)
+        {
+            syslog(LOG_ERR, "JSON explainability file %s does not exist.\n", json_file);
+        }
+    }
+
     /* start the static web interface to serve up analyzer explaination */
-    void *web_ctx = start_web_server (WEB_DIR, WEB_PORT);
+    void *web_ctx = start_web_server(WEB_DIR, WEB_PORT);
 
     while (g_running)
     {
         sleep(1);
     }
 
-    stop_web_server (web_ctx);
+    stop_web_server(web_ctx);
 
     n = 0;
     while (g_analyzer_thread[n])
@@ -1189,6 +1201,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     {
         msgqueue_cancel(g_analyzer_list[i].queue);
     }
+
     for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
     {
         msgqueue_destroy(g_analyzer_list[i].queue);
