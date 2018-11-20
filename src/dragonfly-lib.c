@@ -55,6 +55,7 @@
 #include "dragonfly-lib.h"
 #include "dragonfly-cmds.h"
 #include "dragonfly-io.h"
+#include "webservice.h"
 #include "responder.h"
 #include "config.h"
 #include "param.h"
@@ -1069,7 +1070,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     if (load_redis(L, g_redis_host, g_redis_port) < 0)
     {
         syslog(LOG_ERR, "load_redis failed");
-        exit(EXIT_FAILURE);
+        ///exit(EXIT_FAILURE);
     }
     if ((g_num_analyzer_threads = load_analyzers_config(L, g_analyzer_dir, g_analyzer_list, MAX_ANALYZER_STREAMS)) <= 0)
     {
@@ -1168,10 +1169,28 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         syslog(LOG_INFO, "chroot: %s\n", dragonfly_analyzer_root);
     }
 
+    /* check to see that analyzer descripton files (json) exists. */
+    for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
+    {
+        struct stat sb;
+        char json_file[PATH_MAX];
+        snprintf(json_file, sizeof(json_file) - 1, "%s%s.json", WEB_DIR, g_analyzer_list[i].tag);
+
+        if (lstat(json_file, &sb) < 0)
+        {
+            syslog(LOG_ERR, "analyzer description file %s does not exist.\n", json_file);
+        }
+    }
+
+    /* start the static web interface to serve up analyzer explaination */
+    void *web_ctx = start_web_server(WEB_DIR, WEB_PORT);
+
     while (g_running)
     {
         sleep(1);
     }
+
+    stop_web_server(web_ctx);
 
     n = 0;
     while (g_analyzer_thread[n])
@@ -1183,6 +1202,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     {
         msgqueue_cancel(g_analyzer_list[i].queue);
     }
+
     for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
     {
         msgqueue_destroy(g_analyzer_list[i].queue);
@@ -1369,6 +1389,7 @@ void startup_threads()
     }
     else if (g_analyzer_pid == 0)
     {
+
         // child launch_analyzer_process
         launch_analyzer_process(g_analyzer_dir);
     }
