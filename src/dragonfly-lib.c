@@ -1169,6 +1169,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         syslog(LOG_INFO, "chroot: %s\n", dragonfly_analyzer_root);
     }
 
+    /* check to see that analyzer descripton files (json) exists. */
     for (int i = 0; g_analyzer_list[i].queue != NULL; i++)
     {
         struct stat sb;
