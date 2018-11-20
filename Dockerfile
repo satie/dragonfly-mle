@@ -2,7 +2,7 @@ FROM debian:stretch-slim
 LABEL  maintainer="mle@counterflowai.com" domain="counterflow.ai"
 
 RUN apt-get update --fix-missing
-RUN apt-get install -y zlib1g-dev libluajit-5.1 liblua5.1-dev lua-socket libcurl4-openssl-dev libatlas-base-dev libhiredis-dev git make
+RUN apt-get install -y zlib1g-dev libluajit-5.1 liblua5.1-dev lua-socket libcurl4-openssl-dev libatlas-base-dev libhiredis-dev git make libmicrohttpd-dev
 #
 #
 #
@@ -29,7 +29,7 @@ RUN rm -rf redis-ml
 #
 #
 RUN mkdir /opt/suricata/; mkdir /opt/suricata/var
-RUN apt-get purge -y build-essential git make; apt-get autoremovecd 
+RUN apt-get purge -y build-essential git make; apt-get -y autoremove
 #
 WORKDIR /usr/local/dragonfly-mle
 ENTRYPOINT redis-server --loadmodule /usr/local/lib/redis-ml.so --daemonize yes && /usr/local/dragonfly-mle/bin/dragonfly-mle

@@ -89,7 +89,7 @@ Using Docker, this example assumes there is an instance of Suricata already inst
      $ git clone https://github.com/counterflow-ai/dragonfly-mle.git
      $ cd dragonfly-mle
      $ docker build -t dragonfly .
-     $ docker run -it -v /var/log/suricata/log:/opt/dragonfly/log dragonfly
+     $ docker run -it -v /var/log/suricata/log:/var/log/suricata dragonfly
 
 For better grasp on how things function, be sure to study the Dockerfile, config.lua and the example scripts referenced.  Remember to rebuild the Docker image whenever any changes are made to any of the scripts.
 
